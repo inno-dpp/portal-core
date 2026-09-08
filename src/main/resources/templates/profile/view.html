@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/head :: common('My Profile')}"></head>
+<body>
+    <!-- Navigation -->
+    <nav th:replace="~{fragments/navigation :: navbar('profile')}"></nav>
+
+    <!-- Main Content -->
+    <main class="container-fluid mt-4">
+        <!-- Page Header -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h1><i class="fas fa-user-cog text-primary"></i> My Profile</h1>
+                <p class="text-muted">View and manage your personal information</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <button class="btn btn-primary" disabled>
+                    <i class="fas fa-edit"></i> Edit Profile <small class="text-muted">(Coming Soon)</small>
+                </button>
+            </div>
+        </div>
+
+        <!-- Flash Messages -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> <span th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div th:if="${message}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> <span th:text="${message}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i> <span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Profile Information -->
+        <div class="row">
+            <!-- Personal Information Card -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-id-card"></i> Personal Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Full Name:</strong></div>
+                            <div class="col-sm-8" th:text="${user.fullName}">John Doe</div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Username:</strong></div>
+                            <div class="col-sm-8">
+                                <code th:text="${user.username}">johndoe</code>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Email:</strong></div>
+                            <div class="col-sm-8">
+                                <a th:href="'mailto:' + ${user.email}" th:text="${user.email}">john.doe@example.com</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Role & Organization Card -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-user-shield"></i> Role & Organization</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Role:</strong></div>
+                            <div class="col-sm-8">
+                                <span th:switch="${user.role.name()}">
+                                    <span th:case="'PLATFORM_ADMIN'" class="badge bg-danger fs-6">Platform Administrator</span>
+                                    <span th:case="'ORG_ADMIN'" class="badge bg-warning fs-6">Organization Admin</span>
+                                    <span th:case="'SPIP_PRIVILEGED_USER'" class="badge bg-info fs-6">SPIP Privileged User</span>
+                                    <span th:case="'ORG_MEMBER'" class="badge bg-secondary fs-6">Organization Member</span>
+                                    <span th:case="*" class="badge bg-light text-dark fs-6" th:text="${user.role.displayName}">Unknown Role</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Organization:</strong></div>
+                            <div class="col-sm-8">
+                                <th:block th:if="${user.organization != null}">
+                                    <a th:href="@{/organizations/{id}(id=${user.organization.id})}" th:text="${user.organization.name}" class="text-decoration-none">
+                                        Organization Name
+                                    </a>
+                                </th:block>
+                                <th:block th:unless="${user.organization != null}">
+                                    <span class="text-muted"><i>No organization assigned</i></span>
+                                </th:block>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Information Card -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-calendar-alt"></i> Account Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Created:</strong></div>
+                            <div class="col-sm-8">
+                                <span th:text="${#temporals.format(user.createdAt, 'MMM dd, yyyy HH:mm')}">Jan 01, 2024 10:30</span>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Last Updated:</strong></div>
+                            <div class="col-sm-8">
+                                <span th:text="${#temporals.format(user.updatedAt, 'MMM dd, yyyy HH:mm')}">Jan 15, 2024 14:22</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Status Card -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0"><i class="fas fa-shield-alt"></i> Security Status</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Account Status:</strong></div>
+                            <div class="col-sm-8">
+                                <span th:if="${user.enabled}" class="badge bg-success">
+                                    <i class="fas fa-check"></i> Active
+                                </span>
+                                <span th:unless="${user.enabled}" class="badge bg-danger">
+                                    <i class="fas fa-times"></i> Disabled
+                                </span>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Account Expiry:</strong></div>
+                            <div class="col-sm-8">
+                                <span th:if="${user.accountNonExpired}" class="text-success">
+                                    <i class="fas fa-check"></i> Not Expired
+                                </span>
+                                <span th:unless="${user.accountNonExpired}" class="text-danger">
+                                    <i class="fas fa-exclamation-triangle"></i> Expired
+                                </span>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Account Lock:</strong></div>
+                            <div class="col-sm-8">
+                                <span th:if="${user.accountNonLocked}" class="text-success">
+                                    <i class="fas fa-unlock"></i> Unlocked
+                                </span>
+                                <span th:unless="${user.accountNonLocked}" class="text-danger">
+                                    <i class="fas fa-lock"></i> Locked
+                                </span>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Credentials:</strong></div>
+                            <div class="col-sm-8">
+                                <span th:if="${user.credentialsNonExpired}" class="text-success">
+                                    <i class="fas fa-check"></i> Valid
+                                </span>
+                                <span th:unless="${user.credentialsNonExpired}" class="text-warning">
+                                    <i class="fas fa-clock"></i> Expired
+                                </span>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="d-grid">
+                            <a th:href="@{/profile/change-password}" class="btn btn-warning">
+                                <i class="fas fa-key"></i> Change Password
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Information -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-info-circle"></i> Additional Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-lightbulb"></i>
+                            <strong>Need to update your profile?</strong>
+                            Contact your organization administrator or platform admin to make changes to your profile information.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <div th:replace="~{fragments/footer :: footer}"></div>
+
+    <!-- Scripts -->
+    <th:block th:replace="~{fragments/scripts :: common}"></th:block>
+</body>
+</html>

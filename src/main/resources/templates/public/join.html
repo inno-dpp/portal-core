@@ -1,0 +1,1654 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title} ?: 'Join ' + ${branding.brandName}">Join Portal - Application Form</title>
+    <meta name="description" th:content="'Apply to join ' + ${branding.brandName} + ' - secure, federated data sharing for circular manufacturing value chains. Access is currently restricted to project partners during the pilot phase.'">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" th:href="@{${branding.assets.favicon}}">
+
+    <!-- Bootstrap CSS -->
+    <link th:href="@{/webjars/bootstrap/5.3.0/css/bootstrap.min.css}" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link th:href="@{/css/custom.css}" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <!-- Tom Select for NACE code search -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+
+    <!-- Dynamic Branding CSS Variables (loaded after custom.css to override defaults) -->
+    <style th:inline="text">
+        :root {
+            --primary-color: [[${branding.colors.primary}]];
+            --secondary-color: [[${branding.colors.secondary}]];
+            --accent-color: [[${branding.colors.accent}]];
+            --success-color: [[${branding.colors.success}]];
+            --warning-color: [[${branding.colors.warning}]];
+            --danger-color: [[${branding.colors.danger}]];
+            --text-color: [[${branding.colors.text}]];
+            --light-text-color: [[${branding.colors.lightText}]];
+            --font-family: [[${branding.typography.fontFamily}]];
+            --heading-font-family: [[${branding.typography.headingFontFamily}]];
+            --navbar-background: [[${branding.navbar.background}]];
+            --navbar-text-color: [[${branding.navbar.textColor}]];
+        }
+    </style>
+
+    <style>
+        /* Apply branding colors */
+        body {
+            background: var(--secondary-color) !important;
+            min-height: 100vh;
+            margin: 0;
+            font-family: var(--font-family, 'Open Sans', Arial, sans-serif);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 0;
+        }
+
+        .join-container {
+            width: 100%;
+            max-width: 800px;
+            margin: auto;
+            box-sizing: border-box;
+        }
+
+        .join-box {
+            background: var(--primary-color);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            padding: 32px 24px 24px 24px;
+            color: #fff;
+            border: none;
+        }
+
+        .form-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-header h1 {
+            color: #fff;
+            font-weight: 600;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .onboarding-summary {
+            background: #fff;
+            border: 1px solid rgba(31, 41, 51, 0.14);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+        }
+
+        .form-introduction {
+            color: var(--text-color);
+            font-size: 1rem;
+            font-weight: 500;
+            line-height: 1.6;
+            margin: 0 0 1.25rem;
+            padding-bottom: 1.25rem;
+            border-bottom: 1px solid rgba(31, 41, 51, 0.14);
+        }
+
+        .onboarding-summary h2 {
+            color: var(--text-color);
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0 0 0.5rem;
+        }
+
+        .preparation-note {
+            color: var(--text-color);
+            display: flex;
+            align-items: flex-start;
+            gap: 0.6rem;
+            line-height: 1.5;
+            margin: 0 0 1rem;
+        }
+
+        .preparation-note i {
+            color: var(--primary-color);
+            margin-top: 0.25rem;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.75rem;
+        }
+
+        .summary-item {
+            background: #f3f6f5;
+            border: 1px solid #d6dedb;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .summary-item h3 {
+            color: var(--text-color);
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0 0 0.4rem;
+        }
+
+        .summary-item h3 i {
+            color: var(--primary-color);
+            margin-right: 0.35rem;
+        }
+
+        .summary-item p {
+            color: var(--text-color);
+            font-size: 0.9rem;
+            line-height: 1.45;
+            margin: 0;
+        }
+
+        .form-container {
+            padding: 0;
+        }
+
+        .form-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-section h3 {
+            color: var(--accent-color);
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.3rem;
+            border-bottom: 2px solid var(--accent-color);
+            font-weight: 600;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 0.8rem;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 500;
+            color: #ccc;
+        }
+
+        .required {
+            color: #e74c3c !important;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 4px 0 8px 0;
+            border-radius: 8px;
+            border: none;
+            background: #2d323c;
+            color: #fff;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: 2px solid #4f8cff;
+            background: #23272f;
+            box-shadow: none;
+            border-color: transparent;
+        }
+
+        input::placeholder, textarea::placeholder {
+            color: #aaa;
+        }
+
+        select option {
+            background: #2d323c;
+            color: #fff;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+            margin-right: 6px;
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            font-weight: normal;
+            line-height: 1.3;
+            color: #ccc;
+        }
+
+        .consent-group {
+            padding: 12px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: background 0.15s;
+            margin-bottom: 0;
+        }
+
+        .consent-group:hover {
+            background: rgba(255, 255, 255, 0.09);
+        }
+
+        .consent-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            min-width: 20px;
+            margin: 2px 0 0 0;
+            accent-color: var(--accent-color);
+            cursor: pointer;
+        }
+
+        .consent-group span {
+            color: #ccc;
+            line-height: 1.5;
+            cursor: pointer;
+        }
+
+        .consent-group .privacy-link {
+            color: #fff;
+            text-decoration: underline;
+            font-weight: 600;
+        }
+
+        .consent-group .privacy-link:hover {
+            color: var(--accent-color);
+        }
+
+        .consent-group .privacy-link-pending {
+            text-decoration: underline dotted;
+            cursor: help;
+        }
+
+        .info-box {
+            background: rgba(255, 255, 255, 0.1);
+            border-left: 4px solid var(--accent-color);
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .info-box h4 {
+            color: var(--accent-color);
+            margin-bottom: 0.6rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .info-box p {
+            color: #ccc;
+            margin-bottom: 0.3rem;
+        }
+
+        .info-box .next-steps {
+            color: #ccc;
+            list-style: none;
+            counter-reset: next-step;
+            padding-left: 0;
+            margin-bottom: 0;
+        }
+
+        .info-box .next-steps li {
+            position: relative;
+            padding-left: 2.1rem;
+            margin-bottom: 0.6rem;
+            line-height: 1.4;
+        }
+
+        .info-box .next-steps li:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-box .next-steps li::before {
+            counter-increment: next-step;
+            content: counter(next-step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 1.5rem;
+            height: 1.5rem;
+            border-radius: 50%;
+            background: var(--accent-color);
+            color: var(--text-color);
+            font-size: 0.8rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .info-box .next-steps strong {
+            color: #fff;
+        }
+
+        .submit-section {
+            text-align: center;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .pre-submit-note {
+            color: #d6d6d6;
+            font-size: 0.9rem;
+            margin: 0 0 1rem;
+        }
+
+        .submit-button {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent-color);
+            color: var(--text-color);
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-top: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .submit-button:hover {
+            background: var(--secondary-color);
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        }
+
+        .submit-button:focus {
+            outline: 2px solid #4f8cff;
+            box-shadow: 0 0 0 0.2rem rgba(79, 140, 255, 0.25);
+        }
+
+        .submit-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .post-submit-note {
+            margin-top: 1rem;
+            color: #d6d6d6;
+            font-size: 0.9rem;
+        }
+
+        .success-message {
+            display: none;
+            background: var(--success-color);
+            color: #fff;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            border: none;
+            font-weight: bold;
+        }
+
+        .success-message a:hover {
+            background: #f0f0f0 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        /* Contextual, non-blocking notice shown in place of the old native alert. */
+        .form-notice {
+            display: none;
+            background: #fff8e6;
+            border: 1px solid #ffe2a8;
+            border-left: 4px solid #f0ad4e;
+            color: #5c4a00;
+            padding: 1.1rem 1.25rem;
+            border-radius: 8px;
+            margin-bottom: 1.75rem;
+        }
+        .form-notice.notice-info {
+            background: #e7f3ff;
+            border-color: #bcdfff;
+            border-left-color: #0d6efd;
+            color: #0b3d75;
+        }
+        .form-notice.notice-error {
+            background: #fdecea;
+            border-color: #f5c2c0;
+            border-left-color: #dc3545;
+            color: #7a1f1a;
+        }
+        .form-notice h4 {
+            margin: 0 0 .4rem 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+        .form-notice p {
+            margin: 0 0 .85rem 0;
+            line-height: 1.5;
+        }
+        .form-notice .notice-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .5rem;
+            align-items: center;
+        }
+        .form-notice .notice-actions a {
+            display: inline-block;
+            padding: .5rem 1rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: .9rem;
+            border: 1px solid transparent;
+        }
+        .form-notice .cta-primary { background: #0d6efd; color: #fff; border-color: #0a58ca; }
+        .form-notice .cta-primary:hover { background: #0b5ed7; }
+        .form-notice .cta-secondary { background: transparent; color: inherit; border-color: currentColor; }
+        .form-notice .cta-secondary:hover { background: rgba(0,0,0,.05); }
+        .form-notice .notice-hint { font-size: .85rem; opacity: .85; }
+
+        .footer-text {
+            text-align: center;
+            margin-top: 1rem;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.85rem;
+        }
+
+        /* Tom Select dark theme overrides */
+        .ts-wrapper .ts-control {
+            background: #2d323c !important;
+            border: none !important;
+            color: #fff !important;
+            padding: 8px 12px !important;
+            border-radius: 8px !important;
+        }
+        .ts-wrapper .ts-control input {
+            color: #fff !important;
+        }
+        .ts-wrapper .ts-control .item {
+            background: #4f8cff !important;
+            color: #fff !important;
+            border: none !important;
+            border-radius: 4px !important;
+            padding: 2px 8px !important;
+        }
+        .ts-wrapper .ts-control .item .remove {
+            color: #fff !important;
+            border-left-color: rgba(255,255,255,0.3) !important;
+        }
+        .ts-dropdown {
+            background: #2d323c !important;
+            border: 1px solid #4f8cff !important;
+            color: #fff !important;
+        }
+        .ts-dropdown .option {
+            color: #fff !important;
+        }
+        .ts-dropdown .active {
+            background: #4f8cff !important;
+            color: #fff !important;
+        }
+        .ts-dropdown .no-results {
+            color: #aaa !important;
+        }
+
+        /* NACE code contextual help (icon next to the label + collapsible guidance panel) */
+        .nace-help-toggle {
+            width: auto;
+            background: none;
+            border: none;
+            padding: 0;
+            margin: 0 0 0 4px;
+            color: var(--accent-color);
+            font-size: 1em;
+            cursor: pointer;
+            vertical-align: middle;
+        }
+
+        .nace-help-toggle:hover {
+            color: #4f8cff;
+        }
+
+        .nace-help-link {
+            color: #4f8cff;
+        }
+
+        .nace-help-panel {
+            background: rgba(255, 255, 255, 0.08);
+            border-left: 4px solid var(--accent-color);
+            border-radius: 0 8px 8px 0;
+            padding: 0.9rem 1rem;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+
+        .nace-help-panel h4 {
+            color: var(--accent-color);
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .nace-help-panel p {
+            margin: 0 0 0.5rem 0;
+        }
+
+        .nace-help-panel p:last-child {
+            margin-bottom: 0;
+        }
+
+        .nace-help-panel ul {
+            margin: 0 0 0.5rem 0;
+            padding-left: 1.2rem;
+        }
+
+        .nace-help-panel a {
+            color: #4f8cff;
+        }
+
+        /* Dataspace Participation: guided options + collapsible optional details */
+        .section-intro {
+            color: #ccc;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin: 0 0 1rem;
+        }
+
+        .option-hint {
+            display: block;
+            color: #aaa;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+        }
+
+        .checkbox-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 0.25rem 1rem;
+            margin: 4px 0 8px 0;
+        }
+
+        .checkbox-options .checkbox-group {
+            margin-bottom: 0.25rem;
+            padding: 4px 6px;
+            border-radius: 6px;
+            transition: background 0.15s;
+        }
+
+        .checkbox-options .checkbox-group:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .checkbox-options .checkbox-group input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--accent-color);
+            cursor: pointer;
+        }
+
+        .checkbox-options .checkbox-group label {
+            cursor: pointer;
+        }
+
+        .detail-label {
+            font-weight: normal;
+            font-size: 0.9rem;
+            color: #aaa;
+            margin-top: 0.5rem;
+        }
+
+        textarea.detail-input {
+            min-height: 60px;
+        }
+
+        .optional-details-toggle {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            color: #fff;
+            padding: 10px 12px;
+            font-size: 1rem;
+            font-weight: 500;
+            text-align: left;
+            cursor: pointer;
+            margin: 0.25rem 0 1rem;
+        }
+
+        .optional-details-toggle:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .optional-details-toggle i {
+            color: var(--accent-color);
+            margin-right: 6px;
+            transition: transform 0.2s;
+        }
+
+        .optional-details-toggle[aria-expanded="true"] i {
+            transform: rotate(180deg);
+        }
+
+        .optional-details-toggle .optional-hint {
+            display: block;
+            color: #aaa;
+            font-size: 0.85rem;
+            font-weight: normal;
+            margin-top: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .join-container {
+                max-width: 100%;
+                padding: 0 12px;
+            }
+
+            .join-box {
+                padding: 24px 20px 20px 20px;
+            }
+
+            .form-header h1 {
+                font-size: 1.75rem;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .form-header h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="join-container">
+        <div class="join-box">
+            <div class="form-header">
+                <h1>
+                    <i class="fas fa-building" aria-hidden="true"></i>
+                    <span th:text="'Join ' + ${branding.brandName}">Join the Portal</span>
+                </h1>
+            </div>
+
+            <section class="onboarding-summary" aria-labelledby="before-you-start-heading">
+                <p class="form-introduction"
+                   th:text="'Request access to ' + ${branding.brandName} + ' by registering your organisation. This form helps us verify your eligibility, understand your organisation profile, and prepare access to the platform.'">
+                    Request access to the pilot portal by registering your organisation. This form helps us verify your eligibility, understand your organisation profile, and prepare access to the platform.
+                </p>
+                <h2 id="before-you-start-heading">Before you start</h2>
+                <p class="preparation-note">
+                    <i class="fas fa-clock" aria-hidden="true"></i>
+                    <span><strong>Allow about 10 minutes.</strong> Have your organisation details, country, industry sector, NACE code, primary contact details, and participation goals available.</span>
+                </p>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <h3><i class="fas fa-file-signature" aria-hidden="true"></i> What this form is for</h3>
+                        <p>Register your organisation and request access to the pilot portal.</p>
+                    </div>
+                    <div class="summary-item">
+                        <h3><i class="fas fa-user-check" aria-hidden="true"></i> Who can apply</h3>
+                        <p>Access is currently limited to approved project partners during the pilot phase.</p>
+                    </div>
+                    <div class="summary-item">
+                        <h3><i class="fas fa-arrow-right" aria-hidden="true"></i> What happens next</h3>
+                        <p>After submission, our team will review your request and contact you within 5–7 business days.</p>
+                    </div>
+                </div>
+            </section>
+
+            <div class="form-container">
+                <div class="success-message" id="successMessage">
+                    <strong><i class="fas fa-check-circle"></i> Application submitted successfully.</strong><br>
+                    <span th:text="'You will receive a confirmation email shortly. Our team will review your request within 5-7 business days and contact you at the email address you provided.'">You will receive a confirmation email shortly. Our team will review your request within 5-7 business days.</span>
+                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.3); text-align: center;">
+                        <a th:href="@{/login}" href="/login" th:style="'display: inline-block; background: #fff; color: ' + ${branding.colors.accent} + '; padding: 10px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; transition: all 0.2s;'">
+                            <i class="fas fa-sign-in-alt"></i> Return to Login Page
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Contextual notice (replaces native alert): existing request guidance, errors, etc. -->
+                <div class="form-notice" id="formNotice" role="alert" aria-live="polite"
+                     th:attr="data-support-email=${supportEmail},data-brand-name=${branding.brandName}"></div>
+
+                <form id="joinForm" aria-labelledby="application-form-heading">
+                    <h2 id="application-form-heading" class="visually-hidden">Portal access application</h2>
+                    <div class="form-section">
+                        <h3>Organization Information</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="companyName">Company/Organization Name <span class="required">*</span></label>
+                                <input type="text" id="companyName" name="companyName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="companyType">Organization Type <span class="required">*</span></label>
+                                <select id="companyType" name="companyType" required>
+                                    <option value="">Select organization type</option>
+                                    <option value="manufacturer">Manufacturer</option>
+                                    <option value="recycler">Recycler/Waste Manager</option>
+                                    <option value="remanufacturer">Remanufacturer</option>
+                                    <option value="technology_provider">Technology Provider</option>
+                                    <option value="research_institution">Research Institution</option>
+                                    <option value="association">Industry Association</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="industry">Primary Industry Sector <span class="required">*</span></label>
+                                <select id="industry" name="industry" required>
+                                    <option value="">Select industry sector</option>
+                                    <option value="Electrical and Electronic Equipment">Electrical and Electronic Equipment</option>
+                                    <option value="Catalytic Converters">Catalytic Converters</option>
+                                    <option value="Agricultural Plastic">Agricultural Plastic</option>
+                                    <option value="Metals and Materials">Metals and Materials</option>
+                                    <option value="Textiles">Textiles</option>
+                                    <option value="Construction">Construction</option>
+                                    <option value="Chemicals">Chemicals</option>
+                                    <option value="Data Analytics">Data Analytics</option>
+                                    <option value="Research">Research</option>
+                                    <option value="Others">Others</option>
+                                </select>
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="naceCodes">
+                                    NACE Code(s) <span class="required">*</span>
+                                    <button type="button" id="naceHelpToggle" class="nace-help-toggle"
+                                            aria-expanded="false" aria-controls="naceHelpPanel"
+                                            title="What are NACE codes?">
+                                        <i class="fas fa-question-circle" aria-hidden="true"></i>
+                                        <span class="visually-hidden">What are NACE codes?</span>
+                                    </button>
+                                </label>
+                                <small style="color: #6b7280; display: block; margin-bottom: 2px;">NACE codes classify the economic activity of your organisation. Choose the code(s) that best describe what your organisation does.</small>
+                                <select id="naceCodes" name="naceCodes" multiple placeholder="Search by activity, sector, or keyword, e.g. software, retail, construction">
+                                </select>
+                                <small style="color: #6b7280;">Type at least 2 characters to search by code or description (NACE Rev. 2.1).
+                                    Not sure which to choose? <a href="#" id="naceHelpLink" class="nace-help-link">See examples and guidance</a>.</small>
+                                <div id="naceHelpPanel" class="nace-help-panel" hidden>
+                                    <h4>How to choose your NACE code(s)</h4>
+                                    <p>NACE is the European classification of economic activities. The codes you select describe
+                                        what your organisation does and help other participants find and understand your organisation.
+                                        <a href="https://ec.europa.eu/eurostat/web/nace" target="_blank" rel="noopener noreferrer">Read more about NACE on Eurostat &#8599;</a></p>
+                                    <p>Search for your organisation's main product, service, or activity &mdash; not a legal or
+                                        administrative category. For example:</p>
+                                    <ul>
+                                        <li>A software company can search for "software" or "programming"</li>
+                                        <li>A recycling company can search for "waste" or "recovery"</li>
+                                        <li>A construction company can search for "construction"</li>
+                                    </ul>
+                                    <p>You can select more than one code if your organisation has several activities.</p>
+                                    <p>Still not sure? Contact
+                                        <a th:href="'mailto:' + ${supportEmail}" th:text="${supportEmail}" href="#">support</a>
+                                        and we will help you choose the right code.</p>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="companySize">Company Size</label>
+                                <select id="companySize" name="companySize">
+                                    <option value="">Select company size</option>
+                                    <option value="startup">Startup (< 10 employees)</option>
+                                    <option value="small">Small (10-49 employees)</option>
+                                    <option value="medium">Medium (50-249 employees)</option>
+                                    <option value="large">Large (250+ employees)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="country">Country</label>
+                                <select id="country" name="country">
+                                    <option value="">Select country</option>
+                                </select>
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="address">Company Address</label>
+                                <textarea id="address" name="address" placeholder="Street address, city"></textarea>
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="organizationDescription">Organization Description <span class="required">*</span></label>
+                                <textarea id="organizationDescription" name="organizationDescription" required th:placeholder="'Brief description for the ' + ${branding.brandName} + ' portal...'" placeholder="Brief description for the portal..." maxlength="250" rows="3"></textarea>
+                                <small style="color: #aaa; font-size: 0.8rem;">Maximum 250 characters</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="website">Company Website</label>
+                                <input type="url" id="website" name="website" placeholder="https://www.example.com">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Contact Information</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="contactName">Primary Contact Name <span class="required">*</span></label>
+                                <input type="text" id="contactName" name="contactName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="contactTitle">Job Title/Position <span class="required">*</span></label>
+                                <input type="text" id="contactTitle" name="contactTitle" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="email">Email Address <span class="required">*</span></label>
+                                <input type="email" id="email" name="email" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="phone">Phone Number</label>
+                                <div style="display: flex; gap: 8px;">
+                                    <select id="phonePrefix" name="phonePrefix" style="max-width: 140px;">
+                                        <option value="">Prefix</option>
+                                    </select>
+                                    <input type="tel" id="phone" name="phone" style="flex: 1;">
+                                </div>
+                                <small style="color: #6b7280;">Automatically suggested based on the selected country.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Dataspace Participation</h3>
+                        <p class="section-intro">Tell us how your organisation expects to participate in the dataspace.
+                            Your answers help us understand potential data contributions, data needs, and technical readiness.</p>
+
+                        <div class="form-group">
+                            <label>What are your primary goals for joining the dataspace? <span class="required">*</span></label>
+                            <small class="option-hint">Select all that apply.</small>
+                            <div class="checkbox-options" id="goalOptions">
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="goalSharing" value="Sharing data with partners">
+                                    <label for="goalSharing">Sharing data with partners</label>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="goalAccessing" value="Accessing circular economy datasets">
+                                    <label for="goalAccessing">Accessing circular economy datasets</label>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="goalCollaboration" value="Finding new collaboration opportunities">
+                                    <label for="goalCollaboration">Finding new collaboration opportunities</label>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="goalReporting" value="Improving reporting and traceability">
+                                    <label for="goalReporting">Improving reporting and traceability</label>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="goalTesting" value="Testing platform services"
+                                           th:value="'Testing ' + ${branding.brandName} + ' services'">
+                                    <label for="goalTesting" th:text="'Testing ' + ${branding.brandName} + ' services'">Testing platform services</label>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="goalOther" value="Other">
+                                    <label for="goalOther">Other</label>
+                                </div>
+                            </div>
+                            <label for="participationGoals" class="detail-label">Please add context or specific objectives (optional)</label>
+                            <textarea id="participationGoals" name="participationGoals" class="detail-input" rows="2" maxlength="1500"
+                                      placeholder="e.g. the partners, projects, or use cases you have in mind..."></textarea>
+                        </div>
+
+                        <button type="button" id="moreDetailsToggle" class="optional-details-toggle"
+                                aria-expanded="false" aria-controls="moreDetailsPanel">
+                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                            Want to tell us more?
+                            <span class="optional-hint">Optional &mdash; your answers help us prepare your access and match you with relevant partners.</span>
+                        </button>
+
+                        <div id="moreDetailsPanel" class="optional-details-panel" hidden>
+                            <div class="form-group">
+                                <label>What types of data would you be willing to share?</label>
+                                <small class="option-hint">Select all that apply.</small>
+                                <div class="checkbox-options" id="dataTypesOptions">
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="shareMaterial" value="Material composition">
+                                        <label for="shareMaterial">Material composition</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="shareWaste" value="Waste streams">
+                                        <label for="shareWaste">Waste streams</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="shareRecycling" value="Recycling processes">
+                                        <label for="shareRecycling">Recycling processes</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="shareLifecycle" value="Product lifecycle data">
+                                        <label for="shareLifecycle">Product lifecycle data</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="shareEnvironmental" value="Environmental impact data">
+                                        <label for="shareEnvironmental">Environmental impact data</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="shareLogistics" value="Logistics data">
+                                        <label for="shareLogistics">Logistics data</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="shareCertification" value="Certification or compliance data">
+                                        <label for="shareCertification">Certification or compliance data</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="shareMarket" value="Market or availability data">
+                                        <label for="shareMarket">Market or availability data</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="shareOther" value="Other">
+                                        <label for="shareOther">Other</label>
+                                    </div>
+                                </div>
+                                <label for="dataTypes" class="detail-label">Please specify or add detail (optional)</label>
+                                <textarea id="dataTypes" name="dataTypes" class="detail-input" rows="2" maxlength="1500"
+                                          placeholder="e.g. specific datasets, formats, or how often they are updated..."></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label>What types of data would you need access to?</label>
+                                <small class="option-hint">Select all that apply.</small>
+                                <div class="checkbox-options" id="dataNeedsOptions">
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="needMaterial" value="Material composition">
+                                        <label for="needMaterial">Material composition</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="needWaste" value="Waste streams">
+                                        <label for="needWaste">Waste streams</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="needRecycling" value="Recycling processes">
+                                        <label for="needRecycling">Recycling processes</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="needLifecycle" value="Product lifecycle data">
+                                        <label for="needLifecycle">Product lifecycle data</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="needEnvironmental" value="Environmental impact data">
+                                        <label for="needEnvironmental">Environmental impact data</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="needLogistics" value="Logistics data">
+                                        <label for="needLogistics">Logistics data</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="needCertification" value="Certification or compliance data">
+                                        <label for="needCertification">Certification or compliance data</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="needMarket" value="Market or availability data">
+                                        <label for="needMarket">Market or availability data</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="needOther" value="Other">
+                                        <label for="needOther">Other</label>
+                                    </div>
+                                </div>
+                                <label for="dataNeeds" class="detail-label">Please specify or add detail (optional)</label>
+                                <textarea id="dataNeeds" name="dataNeeds" class="detail-input" rows="2" maxlength="1500"
+                                          placeholder="e.g. recycled material availability in your region, waste stream data from partners..."></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Do you currently use any data management systems?</label>
+                                <small class="option-hint">Select all that apply.</small>
+                                <div class="checkbox-options" id="systemsOptions">
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="sysErp" value="ERP">
+                                        <label for="sysErp">ERP</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="sysCrm" value="CRM">
+                                        <label for="sysCrm">CRM</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="sysDatabases" value="Internal databases">
+                                        <label for="sysDatabases">Internal databases</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="sysSpreadsheets" value="Spreadsheets">
+                                        <label for="sysSpreadsheets">Spreadsheets</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="sysIot" value="IoT systems">
+                                        <label for="sysIot">IoT systems</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="sysApis" value="APIs">
+                                        <label for="sysApis">APIs</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="sysCatalogues" value="Data catalogues">
+                                        <label for="sysCatalogues">Data catalogues</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="sysNone" value="None">
+                                        <label for="sysNone">None</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="sysNotSure" value="Not sure">
+                                        <label for="sysNotSure">Not sure</label>
+                                    </div>
+                                </div>
+                                <label for="currentSystems" class="detail-label">Please specify tools or systems, if known (optional)</label>
+                                <textarea id="currentSystems" name="currentSystems" class="detail-input" rows="2" maxlength="1500"
+                                          placeholder="e.g. SAP ERP, PostgreSQL databases, Azure IoT Hub..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-box">
+                        <h4>What happens after you submit?</h4>
+                        <ol class="next-steps">
+                            <li><strong>Application review</strong> &mdash; <span th:text="${branding.teamName}">the team</span> reviews your request within 5&ndash;7 business days.</li>
+                            <li><strong>Eligibility confirmation</strong> &mdash; approved project partners receive a confirmation by email.</li>
+                            <li><strong>Technical onboarding</strong> &mdash; your team receives instructions for security setup and portal access.</li>
+                            <li><strong>Training and support</strong> &mdash; we help your team start using <span th:text="${branding.brandName}">the portal</span>.</li>
+                        </ol>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Terms & Agreements</h3>
+                        <label class="checkbox-group consent-group" for="gdprConsent">
+                            <input type="checkbox" id="gdprConsent" name="gdprConsent" value="true" required>
+                            <span>
+                                <span th:text="'I consent to the processing of my personal data for the purpose of reviewing this application, in accordance with the ' + ${branding.brandName} + ' '">I consent to the processing of my personal data for the purpose of reviewing this application, in accordance with the Portal </span><a
+                                        th:if="${branding.privacyPolicyUrl != null and !#strings.isEmpty(branding.privacyPolicyUrl)}"
+                                        th:href="${branding.privacyPolicyUrl}" target="_blank" rel="noopener noreferrer"
+                                        class="privacy-link">Privacy Policy</a><span
+                                        th:unless="${branding.privacyPolicyUrl != null and !#strings.isEmpty(branding.privacyPolicyUrl)}"
+                                        class="privacy-link privacy-link-pending" title="Privacy Policy link is not yet available">Privacy Policy</span>. <span class="required">*</span>
+                            </span>
+                        </label>
+                    </div>
+
+                    <div class="submit-section">
+                        <p class="pre-submit-note" th:text="'Submitting this form does not automatically grant access. Your request will be reviewed by the ' + ${branding.brandName} + ' team.'">
+                            Submitting this form does not automatically grant access. Your request will be reviewed by our team.
+                        </p>
+                        <button type="submit" class="submit-button">Submit Application</button>
+                        <p class="post-submit-note" th:text="'By submitting this form, you are applying to join the ' + ${branding.brandName} + ' pilot program.'">
+                            By submitting this form, you're applying to join the pilot program.
+                        </p>
+                    </div>
+                </form>
+
+                <div class="footer-text">
+                    <small>
+                        <i class="fas fa-info-circle"></i>
+                        <span th:text="'© ' + ${#temporals.year(#temporals.createNow())} + ' ' + ${branding.brandName}">© 2025 Portal</span>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tom Select JS -->
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+
+    <script>
+        // Initialize NACE code Tom Select
+        let naceSelect;
+        document.addEventListener('DOMContentLoaded', function() {
+            naceSelect = new TomSelect('#naceCodes', {
+                valueField: 'code',
+                labelField: 'label',
+                searchField: ['code', 'description'],
+                maxItems: null,
+                plugins: ['remove_button'],
+                create: false,
+                preload: false,
+                loadThrottle: 300,
+                placeholder: 'Search by activity, sector, or keyword, e.g. software, retail, construction',
+                load: function(query, callback) {
+                    if (query.length < 2) return callback();
+                    fetch('/api/nace-codes/search?q=' + encodeURIComponent(query))
+                    .then(response => response.json())
+                    .then(data => callback(data))
+                    .catch(() => callback());
+                },
+                render: {
+                    option: function(data, escape) {
+                        return '<div style="display:flex;align-items:center;padding:6px 8px;">' +
+                            '<span style="background:#4f8cff;color:#fff;padding:2px 6px;border-radius:3px;margin-right:8px;font-size:0.85em;">' + escape(data.code) + '</span>' +
+                            '<span>' + escape(data.description) + '</span>' +
+                            '<small style="margin-left:auto;color:#aaa;">' + escape(data.section) + '</small>' +
+                            '</div>';
+                    },
+                    item: function(data, escape) {
+                        return '<div>' + escape(data.code) + ' - ' + escape(data.description) + '</div>';
+                    },
+                    no_results: function() {
+                        return '<div style="padding:8px;color:#aaa;">No matching NACE codes found. Try a broader activity keyword, e.g. "manufacture" or "consultancy".</div>';
+                    }
+                }
+            });
+
+            // Toggle the "how to choose" guidance panel from the label icon or the helper link
+            const naceHelpPanel = document.getElementById('naceHelpPanel');
+            const naceHelpToggle = document.getElementById('naceHelpToggle');
+            function toggleNaceHelp(e) {
+                e.preventDefault();
+                const open = naceHelpPanel.hidden;
+                naceHelpPanel.hidden = !open;
+                naceHelpToggle.setAttribute('aria-expanded', String(open));
+            }
+            naceHelpToggle.addEventListener('click', toggleNaceHelp);
+            document.getElementById('naceHelpLink').addEventListener('click', toggleNaceHelp);
+
+            // Expand/collapse the optional Dataspace Participation details
+            const moreDetailsToggle = document.getElementById('moreDetailsToggle');
+            const moreDetailsPanel = document.getElementById('moreDetailsPanel');
+            moreDetailsToggle.addEventListener('click', function() {
+                const open = moreDetailsPanel.hidden;
+                moreDetailsPanel.hidden = !open;
+                moreDetailsToggle.setAttribute('aria-expanded', String(open));
+            });
+        });
+
+        // Support email and brand name injected from server config via data attributes.
+        const SUPPORT_EMAIL = (document.getElementById('formNotice')
+            && document.getElementById('formNotice').dataset.supportEmail)
+            || 'hello@dataspace-labs.com';
+        const BRAND_NAME = (document.getElementById('formNotice')
+            && document.getElementById('formNotice').dataset.brandName)
+            || 'the portal';
+
+        // Guards against a late on-blur email check re-showing the notice after a successful
+        // submit (the just-created request would otherwise be reported as "already exists").
+        let onboardingSubmitted = false;
+
+        // ---- Contextual notice helpers (replace the old blocking native alert) ----
+        function escapeHtml(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function hideFormNotice() {
+            const el = document.getElementById('formNotice');
+            el.style.display = 'none';
+            el.innerHTML = '';
+        }
+
+        function showFormNotice(notice) {
+            const el = document.getElementById('formNotice');
+            el.className = 'form-notice ' + (notice.variant || '');
+            let actionsHtml = '';
+            if (notice.actions && notice.actions.length) {
+                actionsHtml = '<div class="notice-actions">' +
+                    notice.actions.map(function (a) {
+                        if (a.hint) {
+                            return '<span class="notice-hint">' + escapeHtml(a.label) + '</span>';
+                        }
+                        return '<a href="' + escapeHtml(a.href) + '" class="' + (a.cls || 'cta-secondary') + '">' +
+                            escapeHtml(a.label) + '</a>';
+                    }).join('') +
+                    '</div>';
+            }
+            el.innerHTML = '<h4>' + escapeHtml(notice.title) + '</h4>' +
+                '<p>' + escapeHtml(notice.text) + '</p>' + actionsHtml;
+            el.style.display = 'block';
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // Map an existing-request reason/status to a contextual message + next-step CTAs.
+        function buildExistingRequestNotice(reason, status) {
+            const support = { label: 'Contact support', href: 'mailto:' + SUPPORT_EMAIL, cls: 'cta-secondary' };
+
+            if (reason === 'COMPANY_EXISTS') {
+                return {
+                    variant: '',
+                    title: 'This organization name is already registered',
+                    text: 'An onboarding request with this company name already exists. If this is your organization, please contact support and we will help you.',
+                    actions: [support]
+                };
+            }
+
+            // Default: reason === 'EMAIL_EXISTS'
+            if (status === 'APPROVED' || status === 'ORGANIZATION_CREATED') {
+                return {
+                    variant: 'notice-info',
+                    title: 'This email already has an account',
+                    text: 'This email is already associated with an approved ' + BRAND_NAME + ' account. There is no need to submit the form again.',
+                    actions: [
+                        { label: 'Sign in to portal', href: '/login', cls: 'cta-primary' },
+                        { label: 'Forgot password?', href: '/forgot-password', cls: 'cta-secondary' }
+                    ]
+                };
+            }
+            if (status === 'PENDING') {
+                return {
+                    variant: '',
+                    title: 'This email already has an onboarding request',
+                    text: 'We found an existing onboarding request associated with this email address. Your request is currently under review — you will receive an email once it has been processed. You do not need to submit the form again.',
+                    actions: [ { label: 'Check your email for updates', hint: true }, support ]
+                };
+            }
+            if (status === 'REJECTED') {
+                return {
+                    variant: '',
+                    title: 'An onboarding request already exists',
+                    text: 'An onboarding request already exists for this email, but it may require review. Please contact support and we will look into it.',
+                    actions: [support]
+                };
+            }
+            // Unknown / missing status
+            return {
+                variant: '',
+                title: 'This email already has an onboarding request',
+                text: 'We found an existing onboarding request associated with this email address. You do not need to submit the form again.',
+                actions: [support]
+            };
+        }
+
+        // REST endpoint integration function
+        async function submitToRestEndpoint(formData) {
+            try {
+                // Prepare headers with CSRF token for same-origin requests
+                const headers = {
+                    'Content-Type': 'application/json',
+                };
+
+                // Add CSRF token if available (for same-origin requests)
+                const csrfToken = document.querySelector('meta[name="_csrf"]');
+                const csrfHeader = document.querySelector('meta[name="_csrf_header"]');
+                if (csrfToken && csrfHeader) {
+                    headers[csrfHeader.getAttribute('content')] = csrfToken.getAttribute('content');
+                }
+
+                const response = await fetch('/api/onboarding/request', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(formData)
+                });
+
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                let result;
+
+                if (contentType && contentType.includes('application/json')) {
+                    result = await response.json();
+                } else {
+                    // Handle non-JSON responses (likely HTML error pages)
+                    const textResult = await response.text();
+                    console.error('Non-JSON response received:', textResult);
+
+                    if (textResult.includes('Invalid CORS request')) {
+                        throw new Error('CORS configuration error. Please contact support.');
+                    } else if (response.status === 403) {
+                        throw new Error('Access denied. Please check if the service is available.');
+                    } else {
+                        throw new Error(`Server error (${response.status}). Please try again later.`);
+                    }
+                }
+
+                if (!response.ok) {
+                    // Return the parsed body (reason / requestStatus) so the caller can render
+                    // contextual guidance instead of a generic error.
+                    return {
+                        success: false,
+                        error: result.message || `HTTP error! status: ${response.status}`,
+                        body: result
+                    };
+                }
+
+                return { success: true, data: result };
+            } catch (error) {
+                console.error('Submission error:', error);
+
+                // Provide user-friendly error messages
+                let errorMessage = error.message;
+                if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    errorMessage = 'Network error. Please check your connection and try again.';
+                } else if (error.message.includes('JSON.parse')) {
+                    errorMessage = 'Server response format error. Please contact support.';
+                }
+
+                return { success: false, error: errorMessage };
+            }
+        }
+
+        document.getElementById('joinForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // Get form data
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData.entries());
+
+            // Convert checkbox values to proper booleans
+            data.gdprConsent = data.gdprConsent === 'true' || data.gdprConsent === 'on' ? true : false;
+
+            // Get NACE codes from Tom Select (not captured by FormData for multi-select)
+            const selectedNaceCodes = naceSelect ? naceSelect.getValue() : [];
+            data.naceCodes = Array.isArray(selectedNaceCodes) ? selectedNaceCodes :
+                             (selectedNaceCodes ? [selectedNaceCodes] : []);
+
+            // Simple validation
+            const requiredFields = ['companyName', 'companyType', 'industry', 'organizationDescription', 'contactName', 'contactTitle', 'email'];
+            const missingFields = requiredFields.filter(field => !data[field]);
+
+            if (missingFields.length > 0) {
+                const fieldLabels = {
+                    companyName: 'Company/Organization Name',
+                    companyType: 'Organization Type',
+                    industry: 'Primary Industry Sector',
+                    organizationDescription: 'Organization Description',
+                    contactName: 'Primary Contact Name',
+                    contactTitle: 'Job Title/Position',
+                    email: 'Email Address'
+                };
+                showFormNotice({
+                    variant: '',
+                    title: 'A few required fields are missing',
+                    text: 'Please fill in: ' + missingFields.map(f => fieldLabels[f] || f).join(', ') + '.'
+                });
+                // Focus (without stealing the scroll position from the notice above) so the
+                // field is ready as soon as the user scrolls down to it.
+                const firstMissing = document.getElementById(missingFields[0]);
+                if (firstMissing) firstMissing.focus({ preventScroll: true });
+                return;
+            }
+
+            // Dataspace Participation: combine the selected options with the free-text detail
+            // into the existing DTO string fields (participationGoals, dataTypes, dataNeeds, currentSystems)
+            const collectChecked = (containerId) =>
+                Array.from(document.querySelectorAll('#' + containerId + ' input[type="checkbox"]:checked'))
+                    .map(cb => cb.value);
+
+            const goals = collectChecked('goalOptions');
+            if (goals.length === 0) {
+                showFormNotice({
+                    variant: '',
+                    title: 'Select at least one goal',
+                    text: 'Let us know what you\'re hoping to achieve by joining the dataspace — it helps ' +
+                        'our team review your application and connect you with the right participants.'
+                });
+                const goalOptions = document.getElementById('goalOptions');
+                if (goalOptions) goalOptions.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+            const goalsDetail = (data.participationGoals || '').trim();
+            data.participationGoals = 'Main goals: ' + goals.join('; ')
+                + (goalsDetail ? '. Additional context: ' + goalsDetail : '');
+
+            const composeOptional = (selected, detail, optionsLabel) => {
+                const parts = [];
+                if (selected.length > 0) parts.push(optionsLabel + ': ' + selected.join('; '));
+                if (detail) parts.push('Details: ' + detail);
+                return parts.join('. ');
+            };
+            data.dataTypes = composeOptional(collectChecked('dataTypesOptions'), (data.dataTypes || '').trim(), 'Categories');
+            data.dataNeeds = composeOptional(collectChecked('dataNeedsOptions'), (data.dataNeeds || '').trim(), 'Categories');
+            data.currentSystems = composeOptional(collectChecked('systemsOptions'), (data.currentSystems || '').trim(), 'Systems');
+
+            if (data.naceCodes.length === 0) {
+                showFormNotice({
+                    variant: '',
+                    title: 'NACE code required',
+                    text: 'NACE codes describe your organisation\'s economic activity and help other ' +
+                        'participants find and understand you. Please select at least one before submitting.',
+                    actions: [{
+                        label: 'Tip: search by activity, sector, or keyword in the field above, or use the ' +
+                            'guidance panel we just opened for examples.',
+                        hint: true
+                    }]
+                });
+                const naceHelpPanel = document.getElementById('naceHelpPanel');
+                const naceHelpToggle = document.getElementById('naceHelpToggle');
+                if (naceHelpPanel) naceHelpPanel.hidden = false;
+                if (naceHelpToggle) naceHelpToggle.setAttribute('aria-expanded', 'true');
+                if (naceSelect) naceSelect.focus();
+                return;
+            }
+
+            if (!data.gdprConsent) {
+                showFormNotice({
+                    variant: '',
+                    title: 'Consent required',
+                    text: 'Please accept the GDPR consent checkbox below before submitting — we need it ' +
+                        'to process your application and contact you about it.'
+                });
+                const gdprConsent = document.getElementById('gdprConsent');
+                if (gdprConsent) gdprConsent.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+
+            // Clear any prior notice and show loading state
+            hideFormNotice();
+            const submitButton = document.querySelector('.submit-button');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Submitting your application…';
+
+            // Submit to REST endpoint
+            const result = await submitToRestEndpoint(data);
+
+            if (result.success) {
+                // Show success message
+                onboardingSubmitted = true; // suppress any in-flight on-blur email check
+                hideFormNotice();
+                document.getElementById('successMessage').style.display = 'block';
+                this.reset(); // Reset form
+
+                // Scroll to success message
+                document.getElementById('successMessage').scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+            } else {
+                const body = result.body || {};
+                if (body.reason === 'EMAIL_EXISTS' || body.reason === 'COMPANY_EXISTS') {
+                    showFormNotice(buildExistingRequestNotice(body.reason, body.requestStatus));
+                } else {
+                    showFormNotice({
+                        variant: 'notice-error',
+                        title: 'We couldn’t submit your application',
+                        text: result.error || 'An unexpected error occurred. Please try again.',
+                        actions: [{ label: 'Contact support', href: 'mailto:' + SUPPORT_EMAIL, cls: 'cta-secondary' }]
+                    });
+                }
+            }
+
+            // Always restore the button so the form never looks frozen.
+            submitButton.disabled = false;
+            submitButton.textContent = 'Submit Application';
+        });
+
+        // Early validation: as soon as a returning applicant leaves the email field, check whether
+        // a request already exists and guide them before they fill in the whole form.
+        (function() {
+            const emailInput = document.getElementById('email');
+            if (!emailInput) return;
+
+            // Editing the email invalidates any existing notice and re-arms the check.
+            emailInput.addEventListener('input', function() {
+                onboardingSubmitted = false;
+                hideFormNotice();
+            });
+
+            emailInput.addEventListener('blur', async function() {
+                const email = emailInput.value.trim();
+                // Only check once it looks like a complete address.
+                if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+                try {
+                    const resp = await fetch('/api/onboarding/check-email?email=' + encodeURIComponent(email));
+                    if (!resp.ok) return;
+                    const d = await resp.json();
+                    // Drop stale responses: ignore if the email changed while the request was in
+                    // flight, or if the form was successfully submitted in the meantime (the row we
+                    // just created would otherwise be reported back as a duplicate).
+                    if (onboardingSubmitted || emailInput.value.trim() !== email) return;
+                    if (d.exists) {
+                        showFormNotice(buildExistingRequestNotice('EMAIL_EXISTS', d.requestStatus));
+                    } else {
+                        hideFormNotice();
+                    }
+                } catch (e) {
+                    // Silent — submit-time validation still catches duplicates.
+                }
+            });
+        })();
+
+        // Populate country dropdown
+        (function() {
+            const countrySelect = document.getElementById('country');
+            const countries = [
+                "Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia",
+                "Australia","Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium",
+                "Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria",
+                "Burkina Faso","Burundi","Cabo Verde","Cambodia","Cameroon","Canada","Central African Republic","Chad",
+                "Chile","China","Colombia","Comoros","Congo","Costa Rica","Croatia","Cuba","Cyprus","Czechia",
+                "Denmark","Djibouti","Dominica","Dominican Republic","Ecuador","Egypt","El Salvador",
+                "Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France","Gabon",
+                "Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana",
+                "Haiti","Honduras","Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy",
+                "Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","Korea, North","Korea, South","Kuwait",
+                "Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania",
+                "Luxembourg","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands",
+                "Mauritania","Mauritius","Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco",
+                "Mozambique","Myanmar","Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger",
+                "Nigeria","North Macedonia","Norway","Oman","Pakistan","Palau","Palestine","Panama",
+                "Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia",
+                "Rwanda","Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa",
+                "San Marino","Sao Tome and Principe","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone",
+                "Singapore","Slovakia","Slovenia","Solomon Islands","Somalia","South Africa","South Sudan","Spain",
+                "Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria","Taiwan","Tajikistan","Tanzania",
+                "Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan",
+                "Tuvalu","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay",
+                "Uzbekistan","Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"
+            ];
+            countries.forEach(function(c) {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                countrySelect.appendChild(opt);
+            });
+        })();
+
+        // Populate phone prefix dropdown and auto-select based on country
+        (function() {
+            const countryPhonePrefixes = {
+                "Afghanistan":"+93","Albania":"+355","Algeria":"+213","Andorra":"+376","Angola":"+244",
+                "Antigua and Barbuda":"+1-268","Argentina":"+54","Armenia":"+374","Australia":"+61",
+                "Austria":"+43","Azerbaijan":"+994","Bahamas":"+1-242","Bahrain":"+973","Bangladesh":"+880",
+                "Barbados":"+1-246","Belarus":"+375","Belgium":"+32","Belize":"+501","Benin":"+229",
+                "Bhutan":"+975","Bolivia":"+591","Bosnia and Herzegovina":"+387","Botswana":"+267",
+                "Brazil":"+55","Brunei":"+673","Bulgaria":"+359","Burkina Faso":"+226","Burundi":"+257",
+                "Cabo Verde":"+238","Cambodia":"+855","Cameroon":"+237","Canada":"+1",
+                "Central African Republic":"+236","Chad":"+235","Chile":"+56","China":"+86","Colombia":"+57",
+                "Comoros":"+269","Congo":"+242","Costa Rica":"+506","Croatia":"+385","Cuba":"+53",
+                "Cyprus":"+357","Czechia":"+420","Denmark":"+45","Djibouti":"+253","Dominica":"+1-767",
+                "Dominican Republic":"+1-809","Ecuador":"+593","Egypt":"+20","El Salvador":"+503",
+                "Equatorial Guinea":"+240","Eritrea":"+291","Estonia":"+372","Eswatini":"+268",
+                "Ethiopia":"+251","Fiji":"+679","Finland":"+358","France":"+33","Gabon":"+241",
+                "Gambia":"+220","Georgia":"+995","Germany":"+49","Ghana":"+233","Greece":"+30",
+                "Grenada":"+1-473","Guatemala":"+502","Guinea":"+224","Guinea-Bissau":"+245","Guyana":"+592",
+                "Haiti":"+509","Honduras":"+504","Hungary":"+36","Iceland":"+354","India":"+91",
+                "Indonesia":"+62","Iran":"+98","Iraq":"+964","Ireland":"+353","Israel":"+972","Italy":"+39",
+                "Jamaica":"+1-876","Japan":"+81","Jordan":"+962","Kazakhstan":"+7","Kenya":"+254",
+                "Kiribati":"+686","Korea, North":"+850","Korea, South":"+82","Kuwait":"+965",
+                "Kyrgyzstan":"+996","Laos":"+856","Latvia":"+371","Lebanon":"+961","Lesotho":"+266",
+                "Liberia":"+231","Libya":"+218","Liechtenstein":"+423","Lithuania":"+370","Luxembourg":"+352",
+                "Madagascar":"+261","Malawi":"+265","Malaysia":"+60","Maldives":"+960","Mali":"+223",
+                "Malta":"+356","Marshall Islands":"+692","Mauritania":"+222","Mauritius":"+230",
+                "Mexico":"+52","Micronesia":"+691","Moldova":"+373","Monaco":"+377","Mongolia":"+976",
+                "Montenegro":"+382","Morocco":"+212","Mozambique":"+258","Myanmar":"+95","Namibia":"+264",
+                "Nauru":"+674","Nepal":"+977","Netherlands":"+31","New Zealand":"+64","Nicaragua":"+505",
+                "Niger":"+227","Nigeria":"+234","North Macedonia":"+389","Norway":"+47","Oman":"+968",
+                "Pakistan":"+92","Palau":"+680","Palestine":"+970","Panama":"+507",
+                "Papua New Guinea":"+675","Paraguay":"+595","Peru":"+51","Philippines":"+63","Poland":"+48",
+                "Portugal":"+351","Qatar":"+974","Romania":"+40","Russia":"+7",
+                "Rwanda":"+250","Saint Kitts and Nevis":"+1-869","Saint Lucia":"+1-758",
+                "Saint Vincent and the Grenadines":"+1-784","Samoa":"+685","San Marino":"+378",
+                "Sao Tome and Principe":"+239","Saudi Arabia":"+966","Senegal":"+221","Serbia":"+381",
+                "Seychelles":"+248","Sierra Leone":"+232","Singapore":"+65","Slovakia":"+421",
+                "Slovenia":"+386","Solomon Islands":"+677","Somalia":"+252","South Africa":"+27",
+                "South Sudan":"+211","Spain":"+34","Sri Lanka":"+94","Sudan":"+249","Suriname":"+597",
+                "Sweden":"+46","Switzerland":"+41","Syria":"+963","Taiwan":"+886","Tajikistan":"+992",
+                "Tanzania":"+255","Thailand":"+66","Timor-Leste":"+670","Togo":"+228","Tonga":"+676",
+                "Trinidad and Tobago":"+1-868","Tunisia":"+216","Turkey":"+90","Turkmenistan":"+993",
+                "Tuvalu":"+688","Uganda":"+256","Ukraine":"+380","United Arab Emirates":"+971",
+                "United Kingdom":"+44","United States":"+1","Uruguay":"+598","Uzbekistan":"+998",
+                "Vanuatu":"+678","Vatican City":"+39","Venezuela":"+58","Vietnam":"+84","Yemen":"+967",
+                "Zambia":"+260","Zimbabwe":"+263"
+            };
+
+            const prefixSelect = document.getElementById('phonePrefix');
+            const countrySelect = document.getElementById('country');
+
+            // Build unique sorted prefixes for the dropdown
+            const uniquePrefixes = [...new Set(Object.values(countryPhonePrefixes))].sort(function(a, b) {
+                const numA = parseInt(a.replace(/[^0-9]/g, ''));
+                const numB = parseInt(b.replace(/[^0-9]/g, ''));
+                return numA - numB;
+            });
+
+            // Build reverse lookup: prefix -> list of countries
+            const prefixToCountries = {};
+            Object.entries(countryPhonePrefixes).forEach(function([country, prefix]) {
+                if (!prefixToCountries[prefix]) prefixToCountries[prefix] = [];
+                prefixToCountries[prefix].push(country);
+            });
+
+            uniquePrefixes.forEach(function(prefix) {
+                const opt = document.createElement('option');
+                opt.value = prefix;
+                const countries = prefixToCountries[prefix];
+                const label = countries.length <= 2 ? countries.join(', ') : countries.slice(0, 2).join(', ') + '...';
+                opt.textContent = prefix + ' (' + label + ')';
+                prefixSelect.appendChild(opt);
+            });
+
+            // Auto-select prefix when country changes
+            countrySelect.addEventListener('change', function() {
+                const prefix = countryPhonePrefixes[this.value];
+                if (prefix) {
+                    prefixSelect.value = prefix;
+                }
+            });
+        })();
+
+        // Dynamic form behavior
+        document.getElementById('companyType').addEventListener('change', function() {
+            const industrySelect = document.getElementById('industry');
+            if (this.value === 'research_institution') {
+                // Add research-specific options
+                const researchOption = document.createElement('option');
+                researchOption.value = 'research';
+                researchOption.textContent = 'Research & Development';
+                industrySelect.appendChild(researchOption);
+            }
+        });
+    </script>
+
+    <!-- Bootstrap JS -->
+    <script th:src="@{/webjars/bootstrap/5.3.0/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

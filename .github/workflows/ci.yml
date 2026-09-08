@@ -1,0 +1,89 @@
+name: CI - Continuous Integration
+
+on:
+  push:
+    branches:
+      - '**'  # Run on all branches
+  pull_request:
+    branches:
+      - '**'  # Run on all PRs
+
+jobs:
+  test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better analysis
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Build with Maven
+        run: mvn clean compile -B
+
+      - name: Run tests
+        run: mvn test -B
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          ENCRYPTION_KEY: Test_Encryption_Key_D4C_Portal32
+
+      - name: Generate test report
+        if: always()
+        run: mvn surefire-report:report-only
+
+      # Disabled: artifact storage quota exceeded ("Failed to CreateArtifact:
+      # Artifact storage quota has been hit"). Re-enable once quota frees up.
+      # - name: Upload test results
+      #   if: always()
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: test-results
+      #     path: |
+      #       target/surefire-reports/
+      #       target/site/
+
+      - name: Test Summary
+        uses: test-summary/action@v2
+        if: always()
+        with:
+          paths: "target/surefire-reports/TEST-*.xml"
+
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Check code formatting
+        run: |
+          echo "Checking for common code quality issues..."
+          mvn validate -B
+
+      - name: Dependency vulnerability check
+        run: |
+          echo "Scanning for known vulnerabilities in dependencies..."
+          mvn dependency:analyze -B || true

@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/head :: common('My Tools')}"></head>
+<body>
+    <!-- Navigation -->
+    <nav th:replace="~{fragments/navigation :: navbar('connectors')}"></nav>
+
+    <!-- Main Content -->
+    <main class="container-fluid mt-4">
+        <!-- Page Header -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h1><i class="fas fa-plug text-primary"></i> My Tools
+                    <span class="badge bg-secondary fs-6 align-middle" th:if="${connectorsPage != null}"
+                          th:text="${connectorsPage.totalElements}">0</span>
+                </h1>
+                <p class="text-muted">Manage your data integration endpoints and monitor their status</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a th:if="${organization != null}"
+                   th:href="@{/connectors/new(organizationId=${organization?.id})}"
+                   class="btn btn-primary"
+                   sec:authorize="hasRole('PLATFORM_ADMIN')">
+                    <i class="fas fa-plus"></i> New Tool
+                </a>
+            </div>
+        </div>
+
+        <!-- Organization Selector for Platform Admin -->
+        <div class="row mb-4" th:if="${isPlatformAdmin != null and isPlatformAdmin}">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-building"></i> Select Organization</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="get" th:action="@{/connectors}">
+                            <div class="row align-items-end">
+                                <div class="col-md-10">
+                                    <label for="organizationId" class="form-label">Organization</label>
+                                    <select class="form-select" id="organizationId" name="organizationId" required>
+                                        <option value="" disabled selected>Choose an organization...</option>
+                                        <option th:each="org : ${organizations}"
+                                                th:value="${org.id}"
+                                                th:text="${org.name + ' - ' + org.type.displayName}"
+                                                th:selected="${organization != null and organization.id == org.id}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="fas fa-search"></i> View Tools
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error alert (visible even when only the picker is shown) -->
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Show data only when an organization is selected -->
+        <div th:if="${showOrgSelector == null or !showOrgSelector}">
+
+        <!-- Alerts -->
+        <div th:if="${message}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i>
+            <span th:text="${message}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Filters -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form class="row g-3 align-items-end" method="get" th:action="@{/connectors}">
+                    <div class="col-md-4">
+                        <label for="name" class="form-label">Search</label>
+                        <input type="text" class="form-control" id="name" name="name"
+                               th:value="${name}"
+                               placeholder="Name or description (e.g. CKAN, recycling, encryption)">
+                        <div class="form-text small">Matches name or description, case-insensitive.</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-select" id="status" name="status">
+                            <option th:value="${''}" th:selected="${status == null or #strings.isEmpty(status)}">All statuses</option>
+                            <option th:each="s : ${statusOptions}"
+                                    th:value="${s.name()}"
+                                    th:text="${s.displayName}"
+                                    th:selected="${status != null and status.equalsIgnoreCase(s.name())}">
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="type" class="form-label">Type</label>
+                        <select class="form-select" id="type" name="type">
+                            <option th:value="${''}" th:selected="${type == null or #strings.isEmpty(type)}">All types</option>
+                            <option th:each="t : ${typeOptions}"
+                                    th:value="${t.name()}"
+                                    th:text="${t.displayName}"
+                                    th:selected="${type != null and type.equalsIgnoreCase(t.name())}">
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex justify-content-end gap-2">
+                        <input type="hidden" name="organizationId" th:if="${organization != null}" th:value="${organization.id}">
+                        <input type="hidden" name="size" th:value="${size}">
+                        <input type="hidden" name="sort" th:value="${sort}">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter"></i> Apply
+                        </button>
+                        <a class="btn btn-outline-secondary"
+                           th:href="@{/connectors(organizationId=${organization?.id}, size=${size}, sort=${sort})}">
+                            Clear
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tools Grid -->
+        <div class="row" th:if="${connectorsPage != null && connectorsPage.totalElements > 0}">
+            <div class="col-md-6 col-lg-4 mb-4" th:each="connector : ${connectorsPage.content}">
+                <div class="card connector-card h-100" th:classappend="${connector.statusIndicatorClass}">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0" th:text="${connector.name}">Tool Name</h6>
+                        <span class="badge" th:classappend="${connector.statusBadgeClass}" th:text="${connector.status.displayName}">Status</span>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text text-muted" th:text="${connector.description}">Tool description</p>
+                        
+                        <div class="mb-2">
+                            <strong>Type:</strong> 
+                            <span th:text="${connector.type.displayName}">Type</span>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <strong>Endpoint:</strong>
+                            <small class="text-muted d-block text-truncate" th:text="${connector.endpoint}">Endpoint URL</small>
+                        </div>
+                        
+                        <div class="mb-3" th:if="${connector.lastHeartbeat != null}">
+                            <strong>Last Heartbeat:</strong>
+                            <small class="text-muted d-block" th:text="${#temporals.format(connector.lastHeartbeat, 'yyyy-MM-dd HH:mm')}">2024-01-01 10:00</small>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <div class="btn-group w-100" role="group">
+                            <a th:href="@{/connectors/{id}(id=${connector.id})}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                            <a th:href="@{/connectors/{id}/edit(id=${connector.id})}"
+                               class="btn btn-outline-secondary btn-sm"
+                               sec:authorize="hasRole('PLATFORM_ADMIN')">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                            <button type="button" class="btn btn-outline-danger btn-sm" 
+                                    data-bs-toggle="modal" 
+                                    th:data-bs-target="'#deleteModal' + ${connector.id}"
+                                    sec:authorize="hasRole('PLATFORM_ADMIN')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Delete Confirmation Modal -->
+                <div class="modal fade" th:id="'deleteModal' + ${connector.id}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Confirm Delete</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p>Are you sure you want to delete tool "<span th:text="${connector.name}"></span>"?</p>
+                                <p class="text-danger"><small>This action cannot be undone.</small></p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <form th:action="@{/connectors/{id}/delete(id=${connector.id})}" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-danger">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div class="row" th:if="${connectorsPage == null || connectorsPage.totalElements == 0}">
+            <div class="col-12">
+                <div class="card text-center">
+                    <div class="card-body py-5">
+                        <i class="fas fa-plug fa-4x text-muted mb-3"></i>
+                        <h4 class="text-muted">No Tools Found</h4>
+                        <p class="text-muted mb-4">You haven't created any tools yet. Get started by adding your first data integration endpoint.</p>
+                        <a th:if="${organization != null}"
+                           th:href="@{/connectors/new(organizationId=${organization?.id})}"
+                           class="btn btn-primary"
+                           sec:authorize="hasRole('PLATFORM_ADMIN')">
+                            <i class="fas fa-plus"></i> Create Your First Tool
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="row" th:if="${connectorsPage != null && connectorsPage.totalPages > 1}">
+            <div class="col-12 d-flex justify-content-center">
+                <nav aria-label="Tools pagination">
+                    <ul class="pagination">
+                        <li class="page-item" th:classappend="${!connectorsPage.hasPrevious()} ? ' disabled'">
+                            <a class="page-link"
+                               th:href="@{/connectors(page=${page > 0 ? page - 1 : 0}, size=${size}, sort=${sort}, status=${status}, type=${type}, name=${name}, organizationId=${organization?.id})}"
+                               aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item" th:each="pageNum : ${pageNumbers}"
+                            th:classappend="${pageNum == page} ? ' active'">
+                            <a class="page-link" th:text="${pageNum + 1}"
+                               th:href="@{/connectors(page=${pageNum}, size=${size}, sort=${sort}, status=${status}, type=${type}, name=${name}, organizationId=${organization?.id})}">1</a>
+                        </li>
+                        <li class="page-item" th:classappend="${!connectorsPage.hasNext()} ? ' disabled'">
+                            <a class="page-link"
+                               th:href="@{/connectors(page=${connectorsPage.hasNext() ? page + 1 : page}, size=${size}, sort=${sort}, status=${status}, type=${type}, name=${name}, organizationId=${organization?.id})}"
+                               aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+
+        </div>
+        <!-- End of showOrgSelector wrapper -->
+    </main>
+
+    <!-- Footer -->
+    <div th:replace="~{fragments/footer :: footer}"></div>
+
+    <!-- Scripts -->
+    <th:block th:replace="~{fragments/scripts :: common}"></th:block>
+</body>
+</html>

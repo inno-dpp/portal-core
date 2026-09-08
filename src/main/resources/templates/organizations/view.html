@@ -1,0 +1,1477 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/head :: common(${organization.name})}"></head>
+<body>
+    <!-- Navigation -->
+    <nav th:replace="~{fragments/navigation :: navbar(${activePage ?: 'organizations'})}"></nav>
+
+    <!-- Main Content -->
+    <main class="container-fluid mt-4">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a th:href="@{/organizations}">Organizations</a></li>
+                <li class="breadcrumb-item active" th:text="${organization.name}">Organization Name</li>
+            </ol>
+        </nav>
+
+        <!-- Error Messages -->
+        <div class="row" th:if="${error}">
+            <div class="col-12">
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span th:text="${error}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Success/Info Messages -->
+        <div class="row" th:if="${message != null or success != null}">
+            <div class="col-12">
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle"></i>
+                    <span th:if="${message != null}" th:text="${message}">Success message</span>
+                    <span th:if="${message == null and success != null}" th:text="${success}">Success message</span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- NACE Code Default Warning (only for own org members or platform admins) -->
+        <div class="row" th:if="${organization.hasDefaultNaceCodeOnly() and (isMyOrganization or #authorization.expression('hasRole(''PLATFORM_ADMIN'')'))}">
+            <div class="col-12">
+                <div class="alert alert-warning fade show d-flex flex-wrap align-items-center gap-2" role="alert">
+                    <div class="flex-grow-1">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Your organisation is currently using a default NACE Code.</strong>
+                        Please update it so other partners can correctly identify your economic activity and
+                        find your organisation in relevant searches.
+                        <div class="small text-muted mt-1">
+                            <i class="fas fa-lightbulb"></i>
+                            Not sure which NACE Code to choose? Search by activity, sector, or keyword.
+                        </div>
+                    </div>
+                    <a th:href="@{/organizations/{id}/edit(id=${organization.id})} + '#naceCodes'"
+                       class="btn btn-sm btn-warning text-nowrap">
+                        <i class="fas fa-tags"></i> Update NACE Code
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- CKAN Pre-existing Organization Warning -->
+        <div class="row" th:if="${ckanExistsWarning}">
+            <div class="col-12">
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Information:</strong> This organization already existed in CKAN and has been successfully linked to the portal. No duplicate was created in the CKAN system.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Organization setup status (own org admin only) — actionable summary at the top -->
+        <div class="row mb-4" th:if="${setupChecklist != null}" id="organization-setup-status">
+            <div class="col-12">
+                <div class="card border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-clipboard-check"></i> Organization setup status</h5>
+                    </div>
+                    <div class="card-body">
+                        <p th:if="${setupNeedsAttention}" class="mb-3">
+                            <i class="fas fa-exclamation-triangle text-warning"></i>
+                            Your organisation profile needs attention before it can be fully used in the
+                            [[${branding.brandName}]] ecosystem.
+                        </p>
+                        <p th:unless="${setupNeedsAttention}" class="mb-3 text-success">
+                            <i class="fas fa-check-circle"></i>
+                            Your organisation is set up and ready to use.
+                        </p>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-0"
+                                th:each="item : ${setupChecklist}">
+                                <span>
+                                    <i class="fas me-1"
+                                       th:classappend="${item.done} ? 'fa-check-circle text-success' : 'fa-circle text-muted'"></i>
+                                    <span th:text="${item.label}"
+                                          th:classappend="${item.done} ? 'text-muted' : ''">Item</span>
+                                </span>
+                                <a th:unless="${item.done}" th:href="@{${item.actionUrl}}"
+                                   class="btn btn-sm btn-outline-primary text-nowrap ms-2">
+                                    <span th:text="${item.actionLabel}">Action</span> <i class="fas fa-arrow-right"></i>
+                                </a>
+                                <span th:if="${item.done}" class="badge bg-success ms-2">Done</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page Header -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="me-3" th:if="${organization.logoUrl != null}">
+                        <img th:src="${organization.logoUrl}" alt="Organization Logo" class="rounded" style="width: 64px; height: 64px; object-fit: cover;">
+                    </div>
+                    <div th:if="${organization.logoUrl == null}" class="me-3">
+                        <div class="bg-primary text-white rounded d-flex align-items-center justify-content-center" style="width: 64px; height: 64px;">
+                            <i class="fas fa-building fa-2x"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h1 class="mb-1" th:text="${organization.name}">Organization Name</h1>
+                        <div class="d-flex align-items-center">
+                            <!-- Admin Status Dropdown -->
+                            <div class="dropdown me-2" sec:authorize="hasRole('PLATFORM_ADMIN')">
+                                <button class="btn btn-sm btn-success dropdown-toggle" 
+                                        type="button" 
+                                        data-bs-toggle="dropdown">
+                                    <i class="fas fa-certificate"></i>
+                                    <span th:text="${organization.certificationStatus.displayName}">Status</span>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" onclick="changeStatus('ACTIVE')">
+                                        <i class="fas fa-check-circle text-success"></i> Active
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="changeStatus('RESTRICTED')">
+                                        <i class="fas fa-exclamation-triangle text-warning"></i> Restricted Access
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="changeStatus('INACTIVE')">
+                                        <i class="fas fa-pause-circle text-secondary"></i> Inactive
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="changeStatus('SUSPENDED')">
+                                        <i class="fas fa-ban text-danger"></i> Suspended
+                                    </a></li>
+                                </ul>
+                            </div>
+                            
+                            <!-- Non-admin Static Badge -->
+                            <span class="badge me-2"
+                                  th:classappend="${organization.certificationStatus.badgeClass}"
+                                  th:text="${organization.certificationStatus.displayName}"
+                                  sec:authorize="!hasRole('PLATFORM_ADMIN')">Status</span>
+                            
+                            <span class="text-muted" th:text="${organization.type.displayName}">Organization Type</span>
+                        </div>
+                    </div>
+                </div>
+                <p class="lead text-muted" th:text="${organization.description}">Organization description</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="btn-group">
+                    <!-- Show edit button only to:
+                         1. Platform admins (can edit any organization)
+                         2. Org admins who belong to THIS organization -->
+                    <a th:href="@{/organizations/{id}/edit(id=${organization.id})}"
+                       class="btn btn-outline-primary"
+                       th:if="${#authorization.expression('hasRole(''PLATFORM_ADMIN'')') or
+                               (#authorization.expression('hasRole(''ORG_ADMIN'')') and
+                                #authentication.principal.organization != null and
+                                #authentication.principal.organization.id == organization.id)}">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <button type="button" class="btn btn-outline-danger" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#deleteModal"
+                            sec:authorize="hasRole('PLATFORM_ADMIN')">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Restricted-access notice (matches the directory card's wording) -->
+        <div class="row mb-3" th:if="${organization.certificationStatus.name() == 'RESTRICTED'}">
+            <div class="col-12">
+                <div class="alert alert-warning py-2 mb-0">
+                    <i class="fas fa-info-circle"></i>
+                    Some organisation details or datasets are only visible after collaboration approval.
+                </div>
+            </div>
+        </div>
+
+        <!-- Collaboration Status — the first thing a prospective partner needs to know.
+             Visible to any user with an organisation viewing another org (not just ORG_ADMIN);
+             the actionable button further down stays admin-only since only admins can send requests. -->
+        <div class="row mb-3" th:if="${collaborationStatusLabel != null}">
+            <div class="col-12">
+                <div class="alert alert-light border d-flex align-items-center flex-wrap gap-2 mb-0">
+                    <i class="fas fa-handshake text-muted"></i>
+                    <strong>Collaboration Status:</strong>
+                    <span class="badge" th:classappend="${collaborationStatusBadgeClass}" th:text="${collaborationStatusLabel}">Status</span>
+                    <span class="text-muted small ms-auto" th:if="${collaborationStatusLabel == 'Collaboration active'}">Your organisation can already exchange data with this partner.</span>
+                    <span class="text-muted small ms-auto" th:if="${collaborationStatusLabel == 'Request pending'}">Your collaboration request is awaiting a decision from this organisation.</span>
+                    <span class="text-muted small ms-auto" th:if="${collaborationStatusLabel == 'No collaboration yet'}">You have no active collaboration with this organisation yet.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Organization Details -->
+        <div class="row">
+            <div class="col-md-8">
+                <!-- Organisation Overview -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-info-circle"></i> Organisation Overview</h5>
+                        <a th:href="@{/organizations/{id}/edit(id=${organization.id})}"
+                           class="btn btn-sm btn-primary"
+                           th:if="${#authorization.expression('hasRole(''PLATFORM_ADMIN'')') or
+                                   (#authorization.expression('hasRole(''ORG_ADMIN'')') and
+                                    #authentication.principal.organization != null and
+                                    #authentication.principal.organization.id == organization.id)}">
+                            <i class="fas fa-edit"></i> Edit
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-sm-3"><strong>Legal Name:</strong></div>
+                            <div class="col-sm-9" th:text="${organization.name}">Organization Name</div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-sm-3"><strong>Type:</strong></div>
+                            <div class="col-sm-9">
+                                <span class="badge bg-info" th:text="${organization.type.displayName}">Type</span>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-sm-3"><strong>Industry Sector:</strong></div>
+                            <div class="col-sm-9" th:text="${organization.industrySector.displayName}">Industry Sector</div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-sm-3"><strong>NACE Code(s):</strong></div>
+                            <div class="col-sm-9" th:if="${organization.naceCodes != null and !organization.naceCodes.isEmpty()}">
+                                <span th:each="nc, stat : ${organization.naceCodes}" class="d-inline-block mb-1 me-1">
+                                    <span class="badge bg-primary" th:text="${nc.code}" title="NACE Code">Code</span>
+                                    <span class="small" th:text="${nc.description}">Description</span>
+                                    <span th:if="${!stat.last}" class="text-muted">|</span>
+                                </span>
+                            </div>
+                            <div class="col-sm-9" th:unless="${organization.naceCodes != null and !organization.naceCodes.isEmpty()}">
+                                <span class="text-muted fst-italic">Not provided</span>
+                                <a th:if="${canEdit}" th:href="@{/organizations/{id}/edit(id=${organization.id})} + '#naceCodes'" class="ms-1">Add NACE Code</a>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-sm-3"><strong>Website:</strong></div>
+                            <div class="col-sm-9">
+                                <a th:if="${organization.website != null and !organization.website.isEmpty()}"
+                                   th:href="${organization.website}" target="_blank" rel="noopener noreferrer">
+                                    <i class="fas fa-external-link-alt"></i> <span th:text="${organization.website}">Website</span>
+                                </a>
+                                <span th:unless="${organization.website != null and !organization.website.isEmpty()}">
+                                    <span class="text-muted fst-italic">Not provided</span>
+                                    <a th:if="${canEdit}" th:href="@{/organizations/{id}/edit(id=${organization.id})}" class="ms-1">Add website</a>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-sm-3"><strong>Address:</strong></div>
+                            <div class="col-sm-9">
+                                <span th:if="${organization.address != null and !organization.address.isEmpty()}" th:text="${organization.address}">Address</span>
+                                <span th:unless="${organization.address != null and !organization.address.isEmpty()}">
+                                    <span class="text-muted fst-italic">Not provided</span>
+                                    <a th:if="${canEdit}" th:href="@{/organizations/{id}/edit(id=${organization.id})}" class="ms-1">Add address</a>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-sm-3"><strong>Country:</strong></div>
+                            <div class="col-sm-9">
+                                <span th:if="${organization.country != null and !organization.country.isEmpty()}" th:text="${organization.country}">Country</span>
+                                <span th:unless="${organization.country != null and !organization.country.isEmpty()}">
+                                    <span class="text-muted fst-italic">Not provided</span>
+                                    <a th:if="${canEdit}" th:href="@{/organizations/{id}/edit(id=${organization.id})}" class="ms-1">Add country</a>
+                                </span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Dataspace Participation — the applicant's own words on why they joined and
+                     what data they bring/seek, captured at onboarding time and otherwise never
+                     shown anywhere on the portal. Orgs created directly by an admin (skipping
+                     /join) have no such record; the empty state below covers that case. -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-bullseye"></i> Dataspace Participation</h5>
+                    </div>
+                    <div class="card-body" th:if="${dataspaceRequest != null}">
+                        <div class="mb-3" th:if="${dataspaceRequest.participationGoals != null and !dataspaceRequest.participationGoals.isBlank()}">
+                            <strong><i class="fas fa-flag text-muted"></i> Goals &amp; Objectives</strong>
+                            <p class="mb-0" style="white-space: pre-wrap;" th:text="${dataspaceRequest.participationGoals}">Goals</p>
+                        </div>
+                        <div class="mb-3" th:if="${dataspaceRequest.dataTypes != null and !dataspaceRequest.dataTypes.isBlank()}">
+                            <strong><i class="fas fa-upload text-muted"></i> Data Willing to Share</strong>
+                            <p class="mb-0" style="white-space: pre-wrap;" th:text="${dataspaceRequest.dataTypes}">Data types</p>
+                        </div>
+                        <div class="mb-3" th:if="${dataspaceRequest.dataNeeds != null and !dataspaceRequest.dataNeeds.isBlank()}">
+                            <strong><i class="fas fa-download text-muted"></i> Data Sought</strong>
+                            <p class="mb-0" style="white-space: pre-wrap;" th:text="${dataspaceRequest.dataNeeds}">Data needs</p>
+                        </div>
+                        <div class="mb-0" th:if="${dataspaceRequest.currentSystems != null and !dataspaceRequest.currentSystems.isBlank()}">
+                            <strong><i class="fas fa-server text-muted"></i> Existing Systems</strong>
+                            <p class="mb-0" style="white-space: pre-wrap;" th:text="${dataspaceRequest.currentSystems}">Systems</p>
+                        </div>
+                    </div>
+                    <div class="card-body" th:if="${dataspaceRequest == null}">
+                        <p class="text-muted fst-italic mb-0">
+                            <i class="fas fa-info-circle"></i>
+                            This organisation has not yet provided dataspace participation details.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Technical Capabilities — lightweight, non-sensitive summary (tool type only,
+                     no description/endpoint) visible to any platform member so they can judge fit
+                     before requesting collaboration. Full detail stays in the gated "Data Tools"
+                     card further down. -->
+                <div class="card mb-4" th:if="${organization.connectors != null and !organization.connectors.isEmpty()}">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-plug"></i> Technical Capabilities</h5>
+                    </div>
+                    <div class="card-body">
+                        <span class="badge me-2 mb-2 py-2 px-3" th:each="connector : ${organization.connectors}"
+                              th:classappend="${connector.statusBadgeClass}" th:text="${connector.type.displayName}">Tool</span>
+                    </div>
+                </div>
+
+                <!-- Trust & Verification -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-shield-alt"></i> Trust &amp; Verification</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Certification Status:</strong></div>
+                            <div class="col-sm-8">
+                                <span class="badge"
+                                      th:classappend="${organization.certificationStatus.badgeClass}"
+                                      th:text="${organization.certificationStatus.displayName}"
+                                      data-bs-toggle="tooltip" data-bs-placement="top"
+                                      th:attr="title=${organization.certificationStatus.description}"
+                                      style="cursor: help;">Status</span>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Entry Date:</strong></div>
+                            <div class="col-sm-8"
+                                 th:text="${#temporals.format(organization.createdAt, 'MMMM yyyy', T(java.util.Locale).ENGLISH)}">January 2024</div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Admin-Validated:</strong></div>
+                            <div class="col-sm-8">
+                                <span class="text-success"><i class="fas fa-check-circle"></i> <span th:text="'Verified by a ' + ${branding.brandName} + ' platform administrator'">Verified by a platform administrator</span></span>
+                                <div class="text-muted small mt-1" th:if="${dataspaceRequest != null and dataspaceRequest.processedBy != null}">
+                                    Approved by <span th:text="${dataspaceRequest.processedBy}">admin</span>
+                                    <span th:if="${dataspaceRequest.processedAt != null}">
+                                        on <span th:text="${#temporals.format(dataspaceRequest.processedAt, 'dd MMM yyyy')}">date</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mb-0">
+                            <div class="col-sm-4"><strong>Last Profile Update:</strong></div>
+                            <div class="col-sm-8" th:text="${#temporals.format(organization.updatedAt, 'dd MMM yyyy')}">date</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Technical identifiers — internal/technical info, separate from the public profile.
+                     Visible only to the org's own members/admins or platform admins. -->
+                <div class="card mb-4"
+                     th:if="${canViewOrgCredentials or (organization.spipUser != null and organization.spipUser.spipUser != null
+                             and (isMyOrganization or #authorization.expression('hasRole(''PLATFORM_ADMIN'')')))}">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-key"></i> Technical Identifiers</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small">
+                            Internal technical information used to connect your organisation to platform tools.
+                            These values are not shown to other organisations.
+                        </p>
+
+                        <!-- SPIP user -->
+                        <div class="row mb-3"
+                             th:if="${organization.spipUser != null and organization.spipUser.spipUser != null}">
+                            <div class="col-sm-3">
+                                <strong>SPIP User:</strong>
+                                <i class="fas fa-info-circle text-muted ms-1" style="cursor: help;"
+                                   data-bs-toggle="tooltip"
+                                   title="This identifier signs your organisation in to the Document Manager for Circularity app, where you can securely store, share, and exchange documents. It connects your organisation to the SPIP security and policy platform."></i>
+                            </div>
+                            <div class="col-sm-9">
+                                <code th:text="${organization.spipUser.spipUser}">spipusername</code>
+                            </div>
+                        </div>
+
+                        <!-- CKAN user, only shown when CKAN provisioned its own account instead of
+                             reusing the SPIP one above (SPIP was disabled or not synced). -->
+                        <div class="row mb-3"
+                             th:if="${organization.spipUser != null and organization.spipUser.ckanUser != null}">
+                            <div class="col-sm-3">
+                                <strong>CKAN User:</strong>
+                                <i class="fas fa-info-circle text-muted ms-1" style="cursor: help;"
+                                   data-bs-toggle="tooltip"
+                                   title="This organisation's own CKAN data catalog login, separate from its SPIP account."></i>
+                            </div>
+                            <div class="col-sm-9">
+                                <code th:text="${organization.spipUser.ckanUser}">ckanusername</code>
+                            </div>
+                        </div>
+
+                        <!-- Connector credentials (SPIP password, CKAN API token) — only the org's own
+                             admin or a platform admin. The approval email points new admins here instead
+                             of carrying these secrets in the email body. -->
+                        <th:block th:if="${canViewOrgCredentials}">
+                            <div class="row mb-3"
+                                 th:if="${organization.spipUser != null and organization.spipUser.ckanUser != null}">
+                                <div class="col-sm-3"><strong>CKAN Password:</strong></div>
+                                <div class="col-sm-9">
+                                    <div class="input-group input-group-sm" style="max-width: 360px;">
+                                        <input type="password" class="form-control" id="ckanPasswordField" readonly
+                                               th:value="${organization.spipUser.ckanPassword}">
+                                        <button class="btn btn-outline-secondary" type="button"
+                                                onclick="toggleCredential('ckanPasswordField', 'ckanPasswordIcon')">
+                                            <i class="fas fa-eye" id="ckanPasswordIcon"></i>
+                                        </button>
+                                    </div>
+                                    <small class="text-muted">Use these credentials to sign in to the CKAN data catalog directly.</small>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-sm-3"><strong>SPIP Password:</strong></div>
+                                <div class="col-sm-9"
+                                     th:if="${organization.spipUser != null and organization.spipUser.spipPassword != null}">
+                                    <div class="input-group input-group-sm" style="max-width: 360px;">
+                                        <input type="password" class="form-control" id="spipPasswordField" readonly
+                                               th:value="${organization.spipUser.spipPassword}">
+                                        <button class="btn btn-outline-secondary" type="button"
+                                                onclick="toggleCredential('spipPasswordField', 'spipPasswordIcon')">
+                                            <i class="fas fa-eye" id="spipPasswordIcon"></i>
+                                        </button>
+                                    </div>
+                                    <small class="text-muted">Use these SPIP credentials to sign in to the Document Manager for Circularity app to store, share, and exchange documents.</small>
+                                </div>
+                                <div class="col-sm-9"
+                                     th:unless="${organization.spipUser != null and organization.spipUser.spipPassword != null}">
+                                    <span class="text-muted fst-italic">
+                                        <i class="fas fa-clock"></i> Not yet available &mdash; please contact support if this persists.
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-sm-3"><strong>CKAN API Token:</strong></div>
+                                <div class="col-sm-9" th:if="${ckanApiToken != null}">
+                                    <div class="input-group input-group-sm" style="max-width: 360px;">
+                                        <input type="password" class="form-control" id="ckanTokenField" readonly
+                                               th:value="${ckanApiToken}">
+                                        <button class="btn btn-outline-secondary" type="button"
+                                                onclick="toggleCredential('ckanTokenField', 'ckanTokenIcon')">
+                                            <i class="fas fa-eye" id="ckanTokenIcon"></i>
+                                        </button>
+                                    </div>
+                                    <small class="text-muted">Use this token to publish datasets to the CKAN catalog via the API.</small>
+                                </div>
+                                <div class="col-sm-9" th:unless="${ckanApiToken != null}">
+                                    <span class="text-muted fst-italic">
+                                        <i class="fas fa-clock"></i> Not yet available &mdash; please contact support if this persists.
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Keycloak first-user credentials. The secure-mode approval email carries no
+                                 secrets, so this panel is where the new admin finds the temporary password. -->
+                            <th:block th:if="${keycloakUsername != null}">
+                                <div class="row mb-3">
+                                    <div class="col-sm-3"><strong>Keycloak User:</strong></div>
+                                    <div class="col-sm-9">
+                                        <code th:text="${keycloakUsername}">keycloak-user</code>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-sm-3"><strong>Keycloak Password:</strong></div>
+                                    <div class="col-sm-9" th:if="${keycloakTempPassword != null}">
+                                        <div class="input-group input-group-sm" style="max-width: 360px;">
+                                            <input type="password" class="form-control" id="keycloakPasswordField" readonly
+                                                   th:value="${keycloakTempPassword}">
+                                            <button class="btn btn-outline-secondary" type="button"
+                                                    onclick="toggleCredential('keycloakPasswordField', 'keycloakPasswordIcon')">
+                                                <i class="fas fa-eye" id="keycloakPasswordIcon"></i>
+                                            </button>
+                                        </div>
+                                        <small class="text-muted">
+                                            Temporary password for the organisation's identity provider account &mdash;
+                                            you will be asked to change it at first sign-in<th:block th:if="${keycloakAccountUrl != null}">:
+                                            <a th:href="${keycloakAccountUrl}" target="_blank" rel="noopener">account console</a></th:block>.
+                                            If password mirroring is enabled, your portal password applies instead.
+                                        </small>
+                                    </div>
+                                    <div class="col-sm-9" th:unless="${keycloakTempPassword != null}">
+                                        <span class="text-muted fst-italic">
+                                            <i class="fas fa-clock"></i> Not yet available &mdash; please contact support if this persists.
+                                        </span>
+                                    </div>
+                                </div>
+                            </th:block>
+                        </th:block>
+                    </div>
+                </div>
+
+                <!-- Contact Information -->
+                <div class="card mb-4" th:if="${canViewDetails and (organization.contactEmail != null or organization.contactPhone != null)}">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-address-book"></i> Contact Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3" th:if="${organization.contactEmail != null}">
+                            <div class="col-sm-3"><strong>Email:</strong></div>
+                            <div class="col-sm-9">
+                                <a th:href="'mailto:' + ${organization.contactEmail}">
+                                    <i class="fas fa-envelope"></i> <span th:text="${organization.contactEmail}">Email</span>
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3" th:if="${organization.contactPhone != null}">
+                            <div class="col-sm-3"><strong>Phone:</strong></div>
+                            <div class="col-sm-9">
+                                <a th:href="'tel:' + (${organization.phonePrefix != null ? organization.phonePrefix : ''}) + ${organization.contactPhone}">
+                                    <i class="fas fa-phone"></i>
+                                    <span th:if="${organization.phonePrefix != null}" th:text="${organization.phonePrefix + ' '}"></span><span th:text="${organization.contactPhone}">Phone</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Members Section -->
+                <div class="card mb-4" th:if="${canViewDetails and organization.members != null and !organization.members.isEmpty()}">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-users"></i>
+                            Members (<span th:text="${organization.memberCount}">0</span>)
+                        </h5>
+                        <a th:href="@{/organizations/{id}/edit(id=${organization.id})} + '#members-section'"
+                           class="btn btn-sm btn-primary"
+                           th:if="${canEdit}">
+                            <i class="fas fa-user-plus"></i> Invite / Manage Members
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-3" th:if="${canEdit}">
+                            <i class="fas fa-info-circle"></i>
+                            Use <strong>Invite / Manage Members</strong> to invite new members, change roles, view
+                            permissions, or remove access.
+                        </p>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th th:if="${canEdit}">Email</th>
+                                        <th>Role</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="member : ${organization.members}"
+                                        th:with="roleDesc=${member.role.name() == 'ORG_ADMIN'
+                                                    ? 'Organisation Admins can manage organisation details, members, and access to tools.'
+                                                    : (member.role.name() == 'SPIP_PRIVILEGED_USER'
+                                                        ? 'SPIP Privileged Users can access the SPIP platform and its features.'
+                                                        : (member.role.name() == 'PLATFORM_ADMIN'
+                                                            ? 'Platform Admins have system-wide administration access.'
+                                                            : 'Organisation Members can view organisation information and use permitted features.'))}">
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                                                    <i class="fas fa-user"></i>
+                                                </div>
+                                                <span class="fw-bold" th:text="${member.fullName}">Member Name</span>
+                                            </div>
+                                        </td>
+                                        <td th:if="${canEdit}" th:text="${member.email}">member@example.com</td>
+                                        <td>
+                                            <span class="badge bg-info" th:text="${member.role.displayName}">Role</span>
+                                            <i class="fas fa-info-circle text-muted ms-1" style="cursor: help;"
+                                               data-bs-toggle="tooltip" data-bs-placement="top"
+                                               th:title="${roleDesc}"></i>
+                                        </td>
+                                        <td>
+                                            <span th:if="${!member.enabled}" class="badge bg-secondary">Disabled</span>
+                                            <span th:if="${member.enabled and member.mustChangePassword}" class="badge bg-warning text-dark">Pending Invitation</span>
+                                            <span th:if="${member.enabled and !member.mustChangePassword}" class="badge bg-success">Active</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Tools: grouped by purpose (what the tool is for) rather than a flat
+                     technical list, so a user can recognise each tool's function without prior
+                     knowledge of the platform's architecture. Ecosystem tools the organisation
+                     hasn't set up yet appear as "Not configured" placeholders (own org only). -->
+                <div class="card" th:if="${canViewDetails}">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-plug"></i>
+                            Data Tools (<span th:text="${organization.connectorCount}">0</span>)
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small" th:if="${dataToolGroups != null and !dataToolGroups.isEmpty()}">
+                            These tools allow your organisation to publish datasets, manage secure document sharing,
+                            and exchange data securely with partners.
+                        </p>
+                        <p class="text-muted fst-italic small mb-0" th:if="${dataToolGroups == null or dataToolGroups.isEmpty()}">
+                            <i class="fas fa-info-circle"></i> No data tools have been configured for this organisation yet.
+                        </p>
+
+                        <div th:each="group, groupStat : ${dataToolGroups}" th:classappend="${!groupStat.last ? 'mb-4' : ''}">
+                            <h6 class="text-uppercase text-muted small fw-bold mb-2" th:text="${group.key}">Purpose group</h6>
+                            <div class="row">
+                                <div class="col-md-6 mb-3" th:each="tool, toolStat : ${group.value}">
+                                    <div class="border rounded p-3 h-100" th:classappend="${tool.configured ? '' : 'bg-light'}">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <h6 class="mb-0" th:text="${tool.name}">Tool Name</h6>
+                                            <span class="badge" th:classappend="${tool.statusBadgeClass}" th:text="${tool.statusLabel}">Status</span>
+                                        </div>
+                                        <p class="text-muted small mb-2" th:text="${tool.friendlyDescription}">Description</p>
+
+                                        <div class="small mb-2" th:if="${tool.accessLabel != null}">
+                                            <strong>Access:</strong> <span th:text="${tool.accessLabel}">Access</span>
+                                        </div>
+
+                                        <div th:if="${tool.configured}" class="d-flex gap-2 mt-2">
+                                            <a th:if="${tool.openUrl != null}" th:href="${tool.openUrl}"
+                                               target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-external-link-alt"></i> Open Tool
+                                            </a>
+                                            <button th:if="${tool.adminDescription != null or tool.credentialHint != null}"
+                                                    type="button" class="btn btn-sm btn-outline-secondary"
+                                                    data-bs-toggle="collapse"
+                                                    th:attr="data-bs-target='#toolInstructions' + ${groupStat.index} + '-' + ${toolStat.index}">
+                                                <i class="fas fa-question-circle"></i> View Instructions
+                                            </button>
+                                        </div>
+                                        <div th:if="${tool.configured and (tool.adminDescription != null or tool.credentialHint != null)}"
+                                             class="collapse mt-2"
+                                             th:id="'toolInstructions' + ${groupStat.index} + '-' + ${toolStat.index}">
+                                            <div class="small border-top pt-2">
+                                                <p th:if="${tool.adminDescription != null and !tool.adminDescription.isBlank()}"
+                                                   th:text="${tool.adminDescription}" class="mb-1">Admin-provided detail</p>
+                                                <p th:if="${tool.credentialHint != null}" class="text-muted mb-0">
+                                                    <i class="fas fa-key"></i> <span th:text="${tool.credentialHint}">Credential hint</span>
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div th:unless="${tool.configured}" class="small text-muted fst-italic mt-2">
+                                            <i class="fas fa-info-circle"></i> Contact your platform administrator to enable this tool.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Collaborators Section -->
+                <div class="card mt-3" id="collaborators-section" th:if="${collaborators != null && !collaborators.isEmpty()}">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-handshake"></i>
+                            Collaborators (<span th:text="${#lists.size(collaborators)}">0</span>)
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3" th:each="collab : ${collaborators}">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-building"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <a th:href="@{/organizations/{id}(id=${collab.id})}"
+                                           class="fw-bold text-decoration-none"
+                                           th:text="${collab.name}">Org Name</a>
+                                        <div>
+                                            <small class="text-muted" th:text="${collab.type.displayName}">Type</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Collaboration History (rejections + cancellations between the two orgs) -->
+                <div class="card mt-3" th:if="${collaborationHistory != null && !collaborationHistory.isEmpty()}">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-history"></i>
+                            Collaboration History (<span th:text="${#lists.size(collaborationHistory)}">0</span>)
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert border mb-2"
+                             th:each="entry : ${collaborationHistory}"
+                             th:classappend="${entry.type.name() == 'REJECTION'} ? 'alert-light' : 'alert-light'">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>
+                                    <i class="fas"
+                                       th:classappend="${entry.type.name() == 'REJECTION'} ? 'fa-times-circle text-danger' : 'fa-handshake-slash text-warning'"></i>
+                                    <span th:text="${entry.type.name() == 'REJECTION'} ? 'Request Rejected' : 'Collaboration Cancelled'">Event</span>
+                                </strong>
+                                <small class="text-muted"
+                                       th:text="${#temporals.format(entry.timestamp, 'yyyy-MM-dd HH:mm')}">date</small>
+                            </div>
+                            <div class="mt-1">
+                                <span class="badge bg-secondary" th:text="${entry.actor}">actor</span>
+                            </div>
+                            <div class="mt-2" th:if="${entry.reason != null && !entry.reason.isBlank()}">
+                                <strong>Reason:</strong>
+                                <div style="white-space: pre-wrap;" th:text="${entry.reason}">reason</div>
+                            </div>
+                            <div class="mt-2 text-muted fst-italic"
+                                 th:if="${entry.reason == null || entry.reason.isBlank()}">
+                                No reason was provided.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <!-- Organisation Status — actionable summary; each item links to the relevant area.
+                     Public decision info (datasets, certification, dates) lives in the main-column
+                     Datasets / Trust & Verification blocks, so it is intentionally not repeated here. -->
+                <div class="card mb-3" th:if="${canViewDetails}">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-gauge-high"></i> Organisation Status</h6>
+                    </div>
+                    <div class="card-body">
+                        <!-- Profile completion (own org admin only) -->
+                        <div th:if="${profileCompletionPercent != null}" class="mb-3">
+                            <a th:href="@{/organizations/{id}/edit(id=${organization.id})}"
+                               class="d-flex justify-content-between align-items-center mb-1 text-decoration-none text-body">
+                                <span>Profile completion:</span>
+                                <span><strong th:text="${profileCompletionPercent} + '%'">70%</strong>
+                                    <i class="fas fa-chevron-right small text-muted ms-1"></i></span>
+                            </a>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar"
+                                     th:classappend="${profileCompletionPercent == 100} ? 'bg-success' : (${profileCompletionPercent >= 60} ? 'bg-info' : 'bg-warning')"
+                                     th:style="'width:' + ${profileCompletionPercent} + '%'"></div>
+                            </div>
+                        </div>
+
+                        <!-- Members — links to management only for users who can edit; otherwise a plain count -->
+                        <a th:if="${canEdit}" th:href="@{/organizations/{id}/edit(id=${organization.id})} + '#members-section'"
+                           class="d-flex justify-content-between align-items-center mb-2 text-decoration-none text-body"
+                           data-bs-toggle="tooltip" data-bs-placement="left"
+                           title="User accounts registered under this organisation. Click to manage members.">
+                            <span>Members:</span>
+                            <span><strong th:text="${organization.memberCount}">0</strong>
+                                <i class="fas fa-chevron-right small text-muted ms-1"></i></span>
+                        </a>
+                        <div th:unless="${canEdit}"
+                             class="d-flex justify-content-between align-items-center mb-2"
+                             data-bs-toggle="tooltip" data-bs-placement="left"
+                             title="User accounts registered under this organisation.">
+                            <span>Members:</span>
+                            <strong th:text="${organization.memberCount}">0</strong>
+                        </div>
+
+                        <!-- Active tools -->
+                        <a th:href="@{/connectors}"
+                           class="d-flex justify-content-between align-items-center mb-2 text-decoration-none text-body"
+                           data-bs-toggle="tooltip" data-bs-placement="left"
+                           title="Connectors/integrations owned by this organisation that are currently ONLINE. Click to review your tools.">
+                            <span>Active tools:</span>
+                            <span><strong th:text="${organization.connectorCount}">0</strong>
+                                <i class="fas fa-chevron-right small text-muted ms-1"></i></span>
+                        </a>
+
+                        <!-- Pending actions (own org admin only) -->
+                        <a th:if="${pendingActionsCount != null}" href="#organization-setup-status"
+                           class="d-flex justify-content-between align-items-center mb-2 text-decoration-none text-body"
+                           data-bs-toggle="tooltip" data-bs-placement="left"
+                           title="Setup steps that still need attention. Click to see the checklist.">
+                            <span>Pending actions:</span>
+                            <span>
+                                <strong th:text="${pendingActionsCount}"
+                                        th:classappend="${pendingActionsCount > 0} ? 'text-warning' : 'text-success'">0</strong>
+                                <i class="fas fa-chevron-right small text-muted ms-1"></i>
+                            </span>
+                        </a>
+
+                        <!-- Collaboration status -->
+                        <a th:href="${collaborators != null and !collaborators.isEmpty()} ? '#collaborators-section' : @{/organizations}"
+                           class="d-flex justify-content-between align-items-center text-decoration-none text-body"
+                           data-bs-toggle="tooltip" data-bs-placement="left"
+                           title="Organisations you are actively collaborating with. Click to view collaborators or explore organisations.">
+                            <span>Collaboration:</span>
+                            <span>
+                                <strong th:if="${collaborators != null and !collaborators.isEmpty()}"
+                                        th:text="${#lists.size(collaborators)} + ' active'">2 active</strong>
+                                <span th:unless="${collaborators != null and !collaborators.isEmpty()}" class="text-muted">None yet</span>
+                                <i class="fas fa-chevron-right small text-muted ms-1"></i>
+                            </span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-cogs"></i> Actions</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <!-- Own-organisation view: prioritise management actions. "Contacting"
+                                 your own organisation is not a meaningful action, so it is replaced
+                                 with the tasks an admin actually comes here to do. -->
+                            <th:block th:if="${isMyOrganization}">
+                                <a th:href="@{/organizations/{id}/edit(id=${organization.id})}"
+                                   class="btn btn-primary btn-sm"
+                                   th:if="${canEdit}">
+                                    <i class="fas fa-edit"></i> Edit Organization Information
+                                </a>
+                                <a th:href="@{/organizations/{id}/edit(id=${organization.id})} + '#members-section'"
+                                   class="btn btn-outline-primary btn-sm"
+                                   th:if="${canEdit}">
+                                    <i class="fas fa-user-plus"></i> Invite Member
+                                </a>
+                                <a th:href="@{/connectors}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-plug"></i> Manage Data Tools
+                                </a>
+                                <a th:href="${organization.website}"
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   class="btn btn-outline-secondary btn-sm"
+                                   th:if="${organization.website != null}">
+                                    <i class="fas fa-external-link-alt"></i> View Public Website
+                                </a>
+                            </th:block>
+
+                            <!-- Viewing another organisation: contact / visit are relevant here. -->
+                            <th:block th:unless="${isMyOrganization}">
+                                <a th:href="'mailto:' + ${organization.contactEmail}"
+                                   class="btn btn-outline-primary btn-sm"
+                                   th:if="${canViewDetails and organization.contactEmail != null}">
+                                    <i class="fas fa-envelope"></i> Contact Organization
+                                </a>
+                                <a th:href="${organization.website}"
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   class="btn btn-outline-info btn-sm"
+                                   th:if="${organization.website != null}">
+                                    <i class="fas fa-external-link-alt"></i> Visit Website
+                                </a>
+                            </th:block>
+                            <!-- Collaboration button — state-aware for ORG_ADMIN viewing another org -->
+                            <th:block th:if="${collabButtonState != null}">
+                                <!-- NONE: no prior relationship -->
+                                <button th:if="${collabButtonState == 'NONE'}"
+                                        type="button"
+                                        id="btnRequestCollab"
+                                        class="btn btn-outline-success btn-sm"
+                                        th:data-target-org-id="${organization.id}">
+                                    <i class="fas fa-handshake"></i> Request Collaboration
+                                </button>
+                                <!-- PENDING -->
+                                <button th:if="${collabButtonState == 'PENDING'}"
+                                        type="button"
+                                        class="btn btn-outline-warning btn-sm"
+                                        disabled>
+                                    <i class="fas fa-clock"></i> Request Pending
+                                </button>
+                                <!-- APPROVED — allow cancellation -->
+                                <button th:if="${collabButtonState == 'APPROVED'}"
+                                        type="button"
+                                        id="btnCancelCollab"
+                                        class="btn btn-outline-danger btn-sm"
+                                        th:data-target-org-id="${organization.id}"
+                                        th:data-request-id="${collaborationRequest.id}">
+                                    <i class="fas fa-handshake-slash"></i> Cancel Collaboration
+                                </button>
+                                <!-- REJECTED — allow re-sending -->
+                                <button th:if="${collabButtonState == 'REJECTED'}"
+                                        type="button"
+                                        id="btnRequestCollab"
+                                        class="btn btn-outline-secondary btn-sm"
+                                        th:data-target-org-id="${organization.id}">
+                                    <i class="fas fa-handshake"></i> Request Collaboration Again
+                                </button>
+                            </th:block>
+
+                            <!-- APPROVED — explain what an active collaboration means and what can be done next -->
+                            <div th:if="${collabButtonState == 'APPROVED'}" class="alert alert-success mt-2 mb-2 py-2">
+                                <div class="fw-bold mb-1">
+                                    <i class="fas fa-check-circle"></i> Collaboration active
+                                </div>
+                                <small class="d-block">
+                                    You are currently collaborating with
+                                    <span th:text="${organization.name}">Partner</span>.
+                                    Secure data-sharing permissions may be available between both organisations
+                                    according to <span th:text="${branding.brandName}">the platform's</span> policies.
+                                </small>
+                                <small class="text-muted d-block mt-1"
+                                       th:if="${collaborationRequest.processedAt != null}">
+                                    <strong>Approved on:</strong>
+                                    <span th:text="${#temporals.format(collaborationRequest.processedAt, 'dd MMM yyyy')}">Date</span>
+                                    <span th:if="${collaborationRequest.processedBy != null}">
+                                        by <span th:text="${collaborationRequest.processedBy}">admin</span>
+                                    </span>
+                                </small>
+                                <small class="d-block mt-2">
+                                    <i class="fas fa-history text-muted"></i>
+                                    Use <strong>Contact Organization</strong> above to reach them, review the
+                                    <strong>Collaboration History</strong> panel for the full timeline, or use
+                                    <strong>Cancel Collaboration</strong> to end it. Ending the collaboration
+                                    removes the shared attributes and policy from both organisations.
+                                </small>
+                            </div>
+
+                            <!-- Microcopy: explain what "Request Collaboration" does before the user clicks -->
+                            <div th:if="${collabButtonState == 'NONE' or collabButtonState == 'REJECTED'}"
+                                 id="collabMicrocopy" class="form-text mt-1">
+                                <i class="fas fa-info-circle"></i>
+                                Request collaboration to enable secure data sharing and access
+                                permissions between your organisation and this partner.
+                            </div>
+
+                            <!-- PENDING: explain what happens next -->
+                            <div th:if="${collabButtonState == 'PENDING'}" class="form-text mt-1">
+                                <i class="fas fa-info-circle"></i>
+                                <span th:text="${organization.name}">Partner</span> must approve your request
+                                before collaboration permissions can be enabled.
+                            </div>
+
+                            <!-- Inline feedback shown after a request is sent -->
+                            <div id="collabFeedback" class="mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Cancel Collaboration Modal -->
+    <div class="modal fade" id="cancelCollabModal" tabindex="-1" th:if="${collabButtonState == 'APPROVED'}">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-handshake-slash text-danger"></i> Cancel Collaboration
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>
+                        You are about to cancel the collaboration with
+                        <strong th:text="${organization.name}">Partner</strong>.
+                    </p>
+                    <div class="alert alert-warning">
+                        <small>
+                            <i class="fas fa-exclamation-triangle"></i>
+                            This will remove the partner SPIP attributes and the collaboration policy
+                            for both organisations. The other organisation will be notified.
+                        </small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cancelReason" class="form-label">
+                            <strong>Reason for cancellation</strong> <span class="text-danger">*</span>
+                        </label>
+                        <textarea id="cancelReason" class="form-control" rows="4"
+                                  maxlength="2000" required
+                                  placeholder="Please explain why you are cancelling this collaboration."></textarea>
+                        <div class="form-text">The reason will be shared with the partner organisation and stored on both sides.</div>
+                        <div id="cancelCollabModalError" class="text-danger small mt-1" style="display:none;"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Keep Collaboration
+                    </button>
+                    <button type="button" class="btn btn-danger" id="btnCancelCollabConfirm">
+                        <i class="fas fa-handshake-slash"></i> Cancel Collaboration
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prior Cancellations Warning Modal (shown before sending a new collaboration request when history exists) -->
+    <div class="modal fade" id="cancelHistoryModal" tabindex="-1"
+         th:if="${collabButtonState == 'NONE' or collabButtonState == 'REJECTED'}">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-triangle text-warning"></i>
+                        Previous Collaboration History Found
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>
+                        You are about to send a collaboration request to
+                        <strong th:text="${organization.name}">Partner</strong>.
+                        There is prior history between your organisations.
+                        Please review it before proceeding:
+                    </p>
+                    <div id="rejectionHistoryList" class="mt-3"></div>
+                    <div id="cancellationHistoryList" class="mt-3"></div>
+                    <label for="requestCollabMessageHistory" class="form-label mb-1 mt-3">
+                        <small class="text-muted">Message (optional)</small>
+                    </label>
+                    <textarea id="requestCollabMessageHistory" class="form-control" rows="3" maxlength="1000"
+                              placeholder="Explain why you want to collaborate or what type of data exchange you are interested in."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary" id="btnRequestCollabConfirm">
+                        <i class="fas fa-handshake"></i> Send Request Anyway
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Request Collaboration Confirmation Modal (shown when there is no prior cancellation history) -->
+    <div class="modal fade" id="requestCollabModal" tabindex="-1"
+         th:if="${collabButtonState == 'NONE' or collabButtonState == 'REJECTED'}">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-handshake text-success"></i>
+                        Request collaboration with <span th:text="${organization.name}">Partner</span>?
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>
+                        Request collaboration to enable secure data sharing and access permissions
+                        between your organisation and this partner. This request will be sent to the
+                        organisation administrator.
+                    </p>
+                    <label for="requestCollabMessage" class="form-label mb-1">
+                        <small class="text-muted">Message (optional)</small>
+                    </label>
+                    <textarea id="requestCollabMessage" class="form-control" rows="3" maxlength="1000"
+                              placeholder="Explain why you want to collaborate or what type of data exchange you are interested in."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button type="button" class="btn btn-success" id="btnRequestCollabConfirmNew">
+                        <i class="fas fa-handshake"></i> Send collaboration request
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Change Confirmation Modal -->
+    <div class="modal fade" id="statusChangeModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-certificate text-primary"></i>
+                        Confirm Status Change
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-building fa-3x text-muted mb-2"></i>
+                        <h6 th:text="${organization.name}">Organization Name</h6>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <div class="d-flex align-items-center mb-2">
+                            <strong>Current Status:</strong>
+                            <span class="badge ms-2 bg-secondary" 
+                                  th:text="${organization.certificationStatus.displayName}" 
+                                  id="currentStatusBadge">Current</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <strong>New Status:</strong>
+                            <span class="badge ms-2 bg-primary" id="newStatusBadge">New Status</span>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <small>
+                            <i class="fas fa-exclamation-triangle"></i>
+                            This action will be logged and may trigger notifications to organization members.
+                        </small>
+                    </div>
+                    
+                    <p class="mb-0">Are you sure you want to proceed with this status change?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <form id="statusChangeForm" method="post" th:action="@{/organizations/{id}/status(id=${organization.id})}" class="d-inline">
+                        <input type="hidden" name="newStatus" id="newStatusInput">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Confirm Change
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete organization "<span th:text="${organization.name}"></span>"?</p>
+                    <p class="text-danger"><small>This action cannot be undone and will remove all associated data.</small></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form th:action="@{/organizations/{id}/delete(id=${organization.id})}" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div th:replace="~{fragments/footer :: footer}"></div>
+
+    <!-- Scripts -->
+    <th:block th:replace="~{fragments/scripts :: common}"></th:block>
+
+    <!-- Page-specific scripts -->
+    <script th:inline="javascript">
+        let selectedStatus = '';
+        
+        function changeStatus(status) {
+            selectedStatus = status;
+            document.getElementById('newStatusInput').value = status;
+            
+            // Update the modal with status information
+            const statusDisplayNames = {
+                'ACTIVE': 'Active',
+                'RESTRICTED': 'Restricted Access',
+                'INACTIVE': 'Inactive',
+                'SUSPENDED': 'Suspended'
+            };
+
+            const statusClasses = {
+                'ACTIVE': 'bg-success',      // Green - Operational and healthy
+                'RESTRICTED': 'bg-warning',  // Orange - Caution, limited access
+                'INACTIVE': 'bg-info',       // Light Blue - Informational, temporarily paused
+                'SUSPENDED': 'bg-danger'     // Red - Critical issue, blocked
+            };
+            
+            const newStatusBadge = document.getElementById('newStatusBadge');
+            newStatusBadge.textContent = statusDisplayNames[status];
+            newStatusBadge.className = 'badge ms-2 ' + statusClasses[status];
+            
+            // Show the modal
+            new bootstrap.Modal(document.getElementById('statusChangeModal')).show();
+        }
+        
+        // Prevent status dropdown from closing when clicking on items
+        document.addEventListener('DOMContentLoaded', function() {
+            // Only prevent default on status dropdown items, not all dropdowns (logout needs to work!)
+            const statusDropdown = document.querySelector('.btn-success.dropdown-toggle');
+            if (statusDropdown) {
+                const statusDropdownItems = statusDropdown.parentElement.querySelectorAll('.dropdown-item');
+                statusDropdownItems.forEach(item => {
+                    item.addEventListener('click', function(e) {
+                        e.preventDefault();
+                    });
+                });
+            }
+        });
+    </script>
+
+    <!-- Collaboration request / cancel script -->
+    <script th:if="${collabButtonState != null and collabButtonState != 'PENDING'}" th:inline="javascript">
+        (function() {
+            const csrfToken = /*[[${_csrf.token}]]*/ '';
+            const csrfHeader = /*[[${_csrf.headerName}]]*/ '';
+            const targetOrgName = /*[[${organization.name}]]*/ '';
+
+            function escapeHtml(s) {
+                if (s == null) return '';
+                return String(s)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            // Shared feedback banner for the collaboration widget, replacing native alert()
+            // popups. Used for both success and error so the two look like one consistent
+            // system instead of a styled success box next to a jarring error dialog.
+            function showCollabFeedback(message, variant, footnote) {
+                const feedback = document.getElementById('collabFeedback');
+                if (!feedback) return;
+                const icon = variant === 'danger' ? 'fa-exclamation-circle' : 'fa-check-circle';
+                feedback.innerHTML =
+                    '<div class="alert alert-' + variant + ' alert-dismissible fade show mb-0" role="alert">' +
+                    '<i class="fas ' + icon + '"></i> ' + escapeHtml(message) +
+                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                    '</div>' +
+                    (footnote ? '<small class="text-muted d-block mt-1">' + escapeHtml(footnote) + '</small>' : '');
+            }
+
+            function sendCollaborationRequest(btn, targetOrgId, message) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+                const body = new URLSearchParams();
+                if (message != null && message.trim() !== '') {
+                    body.append('requestMessage', message.trim());
+                }
+                fetch('/organizations/' + targetOrgId + '/collaboration-requests', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        [csrfHeader]: csrfToken
+                    },
+                    body: body.toString()
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        btn.id = '';
+                        btn.className = 'btn btn-outline-warning btn-sm';
+                        btn.innerHTML = '<i class="fas fa-clock"></i> Request Pending';
+                        btn.disabled = true;
+                        // Clear the pre-click microcopy and show explicit success feedback.
+                        const microcopy = document.getElementById('collabMicrocopy');
+                        if (microcopy) microcopy.style.display = 'none';
+                        showCollabFeedback(
+                            'Collaboration request sent successfully.',
+                            'success',
+                            targetOrgName + ' must approve your request before collaboration permissions can be enabled.'
+                        );
+                    } else {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-handshake"></i> Request Collaboration';
+                        showCollabFeedback(data.error || 'Something went wrong. Please try again.', 'danger');
+                    }
+                })
+                .catch(err => {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-handshake"></i> Request Collaboration';
+                    showCollabFeedback('Error sending collaboration request: ' + err, 'danger');
+                });
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                // ----- Request flow (NONE / REJECTED): check for prior cancellations first -----
+                const requestBtn = document.getElementById('btnRequestCollab');
+                if (requestBtn) {
+                    requestBtn.addEventListener('click', function() {
+                        const targetOrgId = requestBtn.dataset.targetOrgId;
+
+                        const opts = { method: 'GET', headers: { [csrfHeader]: csrfToken } };
+                        Promise.all([
+                            fetch('/organizations/' + targetOrgId + '/collaboration-cancellations', opts).then(r => r.json()),
+                            fetch('/organizations/' + targetOrgId + '/collaboration-rejections', opts).then(r => r.json())
+                        ])
+                        .then(([cancelData, rejectData]) => {
+                            if (!cancelData.success || !rejectData.success) {
+                                showCollabFeedback(
+                                    'Error checking history: ' + (cancelData.error || rejectData.error || 'unknown'),
+                                    'danger'
+                                );
+                                return;
+                            }
+                            const cancellations = cancelData.cancellations || [];
+                            const rejections = rejectData.rejections || [];
+                            if (cancellations.length === 0 && rejections.length === 0) {
+                                // No history — ask for explicit confirmation before sending.
+                                new bootstrap.Modal(document.getElementById('requestCollabModal')).show();
+                                return;
+                            }
+                            // Build the rejection history list.
+                            const rejectEl = document.getElementById('rejectionHistoryList');
+                            rejectEl.innerHTML = rejections.length === 0 ? '' :
+                                '<h6 class="text-danger"><i class="fas fa-times-circle"></i> Prior Rejections</h6>' +
+                                rejections.map(r =>
+                                    '<div class="alert alert-light border mb-2">' +
+                                    '<div class="d-flex justify-content-between">' +
+                                    '<strong><i class="fas fa-calendar-alt"></i> ' + escapeHtml(r.rejectedAt) + '</strong>' +
+                                    '<span class="badge bg-secondary">' + escapeHtml(r.targetOrgName) + ' rejected ' + escapeHtml(r.requesterOrgName) + '</span>' +
+                                    '</div>' +
+                                    '<div class="mt-2"><strong>Reason:</strong></div>' +
+                                    '<div style="white-space: pre-wrap;">' + escapeHtml(r.reason || 'No reason was provided.') + '</div>' +
+                                    '</div>'
+                                ).join('');
+                            // Build the cancellation history list.
+                            const listEl = document.getElementById('cancellationHistoryList');
+                            listEl.innerHTML = cancellations.length === 0 ? '' :
+                                '<h6 class="text-warning"><i class="fas fa-handshake-slash"></i> Prior Cancellations</h6>' +
+                                cancellations.map(c =>
+                                    '<div class="alert alert-light border mb-2">' +
+                                    '<div class="d-flex justify-content-between">' +
+                                    '<strong><i class="fas fa-calendar-alt"></i> ' + escapeHtml(c.cancelledAt) + '</strong>' +
+                                    '<span class="badge bg-secondary">Cancelled by ' + escapeHtml(c.initiatingOrgName) + '</span>' +
+                                    '</div>' +
+                                    '<div class="mt-2"><strong>Reason:</strong></div>' +
+                                    '<div style="white-space: pre-wrap;">' + escapeHtml(c.reason) + '</div>' +
+                                    '</div>'
+                                ).join('');
+                            new bootstrap.Modal(document.getElementById('cancelHistoryModal')).show();
+                        })
+                        .catch(err => showCollabFeedback('Error checking history: ' + err, 'danger'));
+                    });
+
+                    const confirmBtn = document.getElementById('btnRequestCollabConfirm');
+                    if (confirmBtn) {
+                        confirmBtn.addEventListener('click', function() {
+                            const msgEl = document.getElementById('requestCollabMessageHistory');
+                            const message = msgEl ? msgEl.value : '';
+                            bootstrap.Modal.getInstance(document.getElementById('cancelHistoryModal')).hide();
+                            sendCollaborationRequest(requestBtn, requestBtn.dataset.targetOrgId, message);
+                        });
+                    }
+
+                    // Confirmation modal for the normal (no prior cancellation) case.
+                    const confirmBtnNew = document.getElementById('btnRequestCollabConfirmNew');
+                    if (confirmBtnNew) {
+                        confirmBtnNew.addEventListener('click', function() {
+                            const msgEl = document.getElementById('requestCollabMessage');
+                            const message = msgEl ? msgEl.value : '';
+                            bootstrap.Modal.getInstance(document.getElementById('requestCollabModal')).hide();
+                            sendCollaborationRequest(requestBtn, requestBtn.dataset.targetOrgId, message);
+                        });
+                    }
+                }
+
+                // ----- Cancel flow (APPROVED) -----
+                const cancelBtn = document.getElementById('btnCancelCollab');
+                if (cancelBtn) {
+                    const cancelModalError = document.getElementById('cancelCollabModalError');
+                    const showCancelModalError = function(message) {
+                        if (!cancelModalError) return;
+                        cancelModalError.textContent = message;
+                        cancelModalError.style.display = 'block';
+                    };
+
+                    cancelBtn.addEventListener('click', function() {
+                        document.getElementById('cancelReason').value = '';
+                        if (cancelModalError) cancelModalError.style.display = 'none';
+                        new bootstrap.Modal(document.getElementById('cancelCollabModal')).show();
+                    });
+
+                    const confirmCancel = document.getElementById('btnCancelCollabConfirm');
+                    confirmCancel.addEventListener('click', function() {
+                        const reason = document.getElementById('cancelReason').value.trim();
+                        if (cancelModalError) cancelModalError.style.display = 'none';
+                        if (!reason) {
+                            showCancelModalError('Please provide a reason for the cancellation.');
+                            return;
+                        }
+                        const targetOrgId = cancelBtn.dataset.targetOrgId;
+                        const requestId = cancelBtn.dataset.requestId;
+                        confirmCancel.disabled = true;
+                        confirmCancel.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cancelling...';
+
+                        const body = 'reason=' + encodeURIComponent(reason);
+                        fetch('/organizations/' + targetOrgId + '/collaboration-requests/' + requestId + '/cancel', {
+                            method: 'POST',
+                            headers: {
+                                [csrfHeader]: csrfToken,
+                                'Content-Type': 'application/x-www-form-urlencoded'
+                            },
+                            body: body
+                        })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) {
+                                bootstrap.Modal.getInstance(document.getElementById('cancelCollabModal')).hide();
+                                // Replace the cancel button with a fresh "Request Collaboration" button.
+                                cancelBtn.id = 'btnRequestCollab';
+                                cancelBtn.className = 'btn btn-outline-secondary btn-sm';
+                                cancelBtn.innerHTML = '<i class="fas fa-handshake"></i> Request Collaboration Again';
+                                cancelBtn.removeAttribute('data-request-id');
+                                // Easiest reliable state refresh: reload so server-rendered collaborators list updates.
+                                window.location.reload();
+                            } else {
+                                confirmCancel.disabled = false;
+                                confirmCancel.innerHTML = '<i class="fas fa-handshake-slash"></i> Cancel Collaboration';
+                                showCancelModalError(data.error || 'Something went wrong. Please try again.');
+                            }
+                        })
+                        .catch(err => {
+                            confirmCancel.disabled = false;
+                            confirmCancel.innerHTML = '<i class="fas fa-handshake-slash"></i> Cancel Collaboration';
+                            showCancelModalError('Error cancelling collaboration: ' + err);
+                        });
+                    });
+                }
+            });
+        })();
+    </script>
+
+    <!-- Initialise Bootstrap tooltips on the Quick Statistics rows. Bootstrap 5 requires this
+         opt-in init; same pattern used on the dashboard. -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var tooltipTriggers = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggers.map(function (el) { return new bootstrap.Tooltip(el); });
+        });
+    </script>
+
+    <!-- Show/hide toggle for the organisation connector credentials (SPIP password, CKAN token). -->
+    <script>
+        function toggleCredential(fieldId, iconId) {
+            const input = document.getElementById(fieldId);
+            const icon = document.getElementById(iconId);
+            if (!input || !icon) return;
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+    </script>
+</body>
+</html>

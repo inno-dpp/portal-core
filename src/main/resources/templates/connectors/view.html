@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/head :: common(${connector.name})}"></head>
+<body>
+    <!-- Navigation -->
+    <nav th:replace="~{fragments/navigation :: navbar('connectors')}"></nav>
+
+    <!-- Main Content -->
+    <main class="container-fluid mt-4">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a th:href="@{/connectors}">Tools</a></li>
+                <li class="breadcrumb-item active" th:text="${connector.name}">Tool Name</li>
+            </ol>
+        </nav>
+
+        <!-- Page Header -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h1>
+                    <i class="fas fa-plug text-primary"></i> 
+                    <span th:text="${connector.name}">Tool Name</span>
+                    <span class="badge ms-2" th:classappend="${connector.statusBadgeClass}" th:text="${connector.status.displayName}">Status</span>
+                </h1>
+                <p class="text-muted" th:text="${connector.description}">Tool description</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="btn-group">
+                    <a th:href="@{/connectors/{id}/edit(id=${connector.id})}"
+                       class="btn btn-outline-primary"
+                       sec:authorize="hasRole('PLATFORM_ADMIN')">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <button type="button" class="btn btn-outline-danger" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#deleteModal"
+                            sec:authorize="hasRole('PLATFORM_ADMIN')">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tool Details -->
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-info-circle"></i> Tool Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-sm-3"><strong>Type:</strong></div>
+                            <div class="col-sm-9">
+                                <span class="badge bg-info" th:text="${connector.type.displayName}">Type</span>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-sm-3"><strong>Status:</strong></div>
+                            <div class="col-sm-9">
+                                <span class="connector-status" th:classappend="${connector.statusIndicatorClass}"></span>
+                                <span th:text="${connector.status.displayName}">Status</span>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-sm-3"><strong>Endpoint:</strong></div>
+                            <div class="col-sm-9">
+                                <code th:text="${connector.endpoint}">https://api.example.com/data</code>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-sm-3"><strong>Organization:</strong></div>
+                            <div class="col-sm-9">
+                                <a th:href="@{/organizations/{id}(id=${connector.organization.id})}" 
+                                   th:text="${connector.organization.name}">Organization Name</a>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3" th:if="${connector.lastHeartbeat != null}">
+                            <div class="col-sm-3"><strong>Last Heartbeat:</strong></div>
+                            <div class="col-sm-9">
+                                <span th:text="${#temporals.format(connector.lastHeartbeat, 'yyyy-MM-dd HH:mm:ss')}">2024-01-01 10:00:00</span>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3" th:if="${connector.heartbeatToken != null}" sec:authorize="hasRole('PLATFORM_ADMIN')">
+                            <div class="col-sm-3"><strong>Heartbeat Token:</strong></div>
+                            <div class="col-sm-9">
+                                <div class="input-group">
+                                    <input type="password" class="form-control form-control-sm"
+                                           th:id="'heartbeatToken'"
+                                           th:value="${connector.heartbeatToken}"
+                                           readonly style="font-family: monospace;">
+                                    <button class="btn btn-outline-secondary btn-sm" type="button"
+                                            onclick="toggleTokenVisibility()" title="Show/Hide token">
+                                        <i class="fas fa-eye" id="toggleIcon"></i>
+                                    </button>
+                                    <button id="copyTokenBtn" class="btn btn-outline-primary btn-sm" type="button"
+                                            onclick="copyToken()" title="Copy token">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                                <small class="text-muted">Use this token in the Authorization header: <code>Bearer &lt;token&gt;</code></small>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-sm-3"><strong>Created:</strong></div>
+                            <div class="col-sm-9">
+                                <span th:text="${#temporals.format(connector.createdAt, 'yyyy-MM-dd HH:mm')}">2024-01-01 10:00</span>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-sm-3"><strong>Last Updated:</strong></div>
+                            <div class="col-sm-9">
+                                <span th:text="${#temporals.format(connector.updatedAt, 'yyyy-MM-dd HH:mm')}">2024-01-01 10:00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <!-- Status Card -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-heartbeat"></i> Health Status</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="connector-status-large mb-3" th:classappend="${connector.statusIndicatorClass}">
+                            <i class="fas fa-circle fa-3x"></i>
+                        </div>
+                        <h5 th:text="${connector.status.displayName}">Status</h5>
+                        <div th:if="${connector.online}" class="text-success">
+                            <i class="fas fa-check-circle"></i> Tool is responding
+                        </div>
+                        <div th:unless="${connector.online}" class="text-danger">
+                            <i class="fas fa-exclamation-triangle"></i> Tool is not responding
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button type="button" class="btn btn-sm btn-outline-primary w-100" disabled title="Not implemented yet">
+                            <i class="fas fa-bolt"></i> Test Connection
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Actions Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-cogs"></i> Actions</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a th:href="${connector.endpoint}" target="_blank" class="btn btn-outline-info btn-sm">
+                                <i class="fas fa-external-link-alt"></i> Explore
+                            </a>
+                            <form th:action="@{/connectors/{id}/regenerate-token(id=${connector.id})}" method="post"
+                                  sec:authorize="hasRole('PLATFORM_ADMIN')"
+                                  onsubmit="return confirm('Are you sure you want to regenerate the heartbeat token? The old token will no longer work.');">
+                                <button type="submit" class="btn btn-outline-warning btn-sm w-100">
+                                    <i class="fas fa-sync-alt"></i> Regenerate Token
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuration Section -->
+        <div class="row mt-4" th:if="${connector.configuration != null}">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-cog"></i> Configuration</h5>
+                    </div>
+                    <div class="card-body">
+                        <pre class="bg-light p-3 rounded"><code th:text="${connector.configuration}">{"key": "value"}</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete tool "<span th:text="${connector.name}"></span>"?</p>
+                    <p class="text-danger"><small>This action cannot be undone.</small></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form th:action="@{/connectors/{id}/delete(id=${connector.id})}" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div th:replace="~{fragments/footer :: footer}"></div>
+
+    <!-- Scripts -->
+    <th:block th:replace="~{fragments/scripts :: common}"></th:block>
+
+    <!-- Page-specific scripts -->
+    <script>
+        function toggleTokenVisibility() {
+            const tokenInput = document.getElementById('heartbeatToken');
+            const toggleIcon = document.getElementById('toggleIcon');
+
+            if (tokenInput.type === 'password') {
+                tokenInput.type = 'text';
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
+            } else {
+                tokenInput.type = 'password';
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
+            }
+        }
+
+        function copyToken() {
+            const tokenInput = document.getElementById('heartbeatToken');
+            const originalType = tokenInput.type;
+            tokenInput.type = 'text';
+            tokenInput.select();
+            tokenInput.setSelectionRange(0, 99999);
+
+            const btn = document.getElementById('copyTokenBtn');
+            const icon = btn ? btn.querySelector('i') : null;
+            const resetIcon = () => {
+                if (!icon) return;
+                icon.classList.remove('fa-check', 'text-success', 'fa-times', 'text-danger');
+                icon.classList.add('fa-copy');
+            };
+
+            navigator.clipboard.writeText(tokenInput.value).then(function() {
+                // Show brief success feedback on the button itself, same as before.
+                if (icon) {
+                    icon.classList.remove('fa-copy');
+                    icon.classList.add('fa-check', 'text-success');
+                    setTimeout(resetIcon, 1500);
+                }
+            }).catch(function(err) {
+                // Same inline treatment as success, just a failure icon instead of a
+                // blocking popup — the token stays selected so the user can copy it
+                // manually (Ctrl/Cmd+C) as a fallback.
+                if (btn) btn.title = 'Could not copy automatically — the token is selected, press Ctrl/Cmd+C to copy manually';
+                if (icon) {
+                    icon.classList.remove('fa-copy');
+                    icon.classList.add('fa-times', 'text-danger');
+                    setTimeout(() => {
+                        resetIcon();
+                        if (btn) btn.title = 'Copy token';
+                    }, 2500);
+                }
+            });
+
+            tokenInput.type = originalType;
+        }
+    </script>
+</body>
+</html>

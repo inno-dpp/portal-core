@@ -1,0 +1,110 @@
+# Test credentials
+test-credentials.env
+
+# Compiled class files
+*.class
+
+# Log files
+*.log
+
+# BlueJ files
+*.ctxt
+
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
+
+# Package Files
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+out/
+.idea_modules/
+
+# Maven / Gradle
+target/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+.gradle/
+
+# H2 Database files (file-based)
+data/
+*.db
+*.mv.db
+*.trace.db
+
+# Spring Boot dev tools
+.spring-boot-devtools.properties
+
+# Thymeleaf cache (if generated locally)
+*.html~
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Logs / Temp
+hs_err_pid*
+
+#for python client
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.env/
+.venv/
+
+# IDE / Editor settings
+.vscode/
+.idea/
+
+# Environment variables / secrets
+*.env
+/env
+old-env/
+
+# macOS and Windows system files
+.DS_Store
+Thumbs.db
+
+# Logs and temp files
+*.log
+*.tmp
+
+# Python packaging
+build/
+dist/
+*.egg-info/
+
+# Uvicorn / FastAPI artifacts
+*.pid
+
+# Local AI-assistant config (machine-specific settings and memory)
+.claude/
+
+# draw.io backup/lock files
+.$*
+
+
+
+# Local AI-assistant notes (machine-specific)
+CLAUDE.local.md
+
+# Local development launcher (developer-specific, holds no secrets itself)
+/run-local.sh
+
+# Deployment-specific branding overlay (see docs/developer/WHITE-LABEL-DEPLOYMENT.md);
+# no trailing slash: the entry may be a symlink into a separate branding repo
+/deploy-branding
+/docker-compose.branding.yml

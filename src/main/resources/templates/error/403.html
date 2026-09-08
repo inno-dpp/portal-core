@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:with="brandName=${branding != null ? branding.brandName : 'Portal'}"
+           th:text="(${title} ?: 'Access Denied') + ' - ' + ${brandName}">Access Denied</title>
+
+    <!-- Bootstrap CSS -->
+    <link th:href="@{/webjars/bootstrap/5.3.0/css/bootstrap.min.css}" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link th:href="@{/css/custom.css}" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body class="bg-light">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card mt-5 shadow">
+                    <div class="card-header bg-danger text-white text-center">
+                        <h1 class="display-1 mb-0">
+                            <i class="fas fa-ban"></i>
+                        </h1>
+                        <h2 class="mb-0">403 - Access Denied</h2>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="mb-4">
+                            <p class="lead" th:text="${message} ?: 'You do not have permission to access this resource.'">
+                                You do not have permission to access this resource.
+                            </p>
+                            <p class="text-muted">
+                                Please ensure you are logged in with the appropriate permissions, or contact your administrator for access.
+                            </p>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                            <a th:href="@{/}" class="btn btn-primary">
+                                <i class="fas fa-home"></i> Back to Home
+                            </a>
+                            <a th:href="@{/login}" class="btn btn-outline-primary">
+                                <i class="fas fa-sign-in-alt"></i> Login
+                            </a>
+                            <button onclick="history.back()" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Go Back
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-footer text-center bg-light">
+                        <small class="text-muted">
+                            If you believe you should have access to this resource, please contact your administrator.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script th:src="@{/webjars/bootstrap/5.3.0/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

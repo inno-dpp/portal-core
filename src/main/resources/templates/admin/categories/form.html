@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/head :: common(${categoryId != null ? 'Edit CKAN Category' : 'New CKAN Category'})}"></head>
+<body>
+    <!-- Navigation -->
+    <nav th:replace="~{fragments/navigation :: navbar('settings')}"></nav>
+
+    <!-- Main Content -->
+    <main class="container-fluid mt-4">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a th:href="@{/admin/settings}">Platform Settings</a></li>
+                <li class="breadcrumb-item"><a th:href="@{/admin/categories}">CKAN Categories</a></li>
+                <li class="breadcrumb-item active" th:text="${categoryId != null ? 'Edit' : 'New'}">Form</li>
+            </ol>
+        </nav>
+
+        <!-- Page Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1>
+                    <i class="fas fa-tags text-primary"></i>
+                    <span th:text="${categoryId != null ? 'Edit CKAN Category' : 'New CKAN Category'}">CKAN Category Form</span>
+                </h1>
+                <p class="text-muted">Categories map to CKAN groups. Saving here creates/updates the group in CKAN too.</p>
+            </div>
+        </div>
+
+        <!-- Form -->
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-cog"></i>
+                            <span th:text="${categoryId != null ? 'Update' : 'Create'} + ' CKAN Category'">CKAN Category Configuration</span>
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="${categoryId != null ? '/admin/categories/' + categoryId + '/edit' : '/admin/categories/new'}"
+                              th:object="${categoryForm}"
+                              method="post">
+
+                            <div class="row mb-4">
+                                <div class="col-md-6 mb-3">
+                                    <label for="title" class="form-label">
+                                        <i class="fas fa-tag"></i> Title *
+                                    </label>
+                                    <input type="text"
+                                           class="form-control"
+                                           id="title"
+                                           th:field="*{title}"
+                                           th:classappend="${#fields.hasErrors('title')} ? 'is-invalid' : ''"
+                                           placeholder="e.g. Catalytic Converters"
+                                           required>
+                                    <div th:if="${#fields.hasErrors('title')}" class="invalid-feedback">
+                                        <span th:errors="*{title}"></span>
+                                    </div>
+                                </div>
+
+                                <!-- Slug: editable (optional, auto-generated from title) on create; read-only display on edit -->
+                                <div class="col-md-6 mb-3" th:if="${categoryId == null}">
+                                    <label for="slug" class="form-label">
+                                        <i class="fas fa-link"></i> Slug
+                                    </label>
+                                    <input type="text"
+                                           class="form-control"
+                                           id="slug"
+                                           th:field="*{slug}"
+                                           th:classappend="${#fields.hasErrors('slug')} ? 'is-invalid' : ''"
+                                           placeholder="auto-generated from title if left blank">
+                                    <div th:if="${#fields.hasErrors('slug')}" class="invalid-feedback">
+                                        <span th:errors="*{slug}"></span>
+                                    </div>
+                                    <div class="form-text">
+                                        <small class="text-muted">CKAN group name — lowercase letters, numbers, hyphens only. Cannot be changed after creation.</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3" th:if="${categoryId != null}">
+                                    <label class="form-label">
+                                        <i class="fas fa-link"></i> Slug
+                                    </label>
+                                    <input type="text" class="form-control" th:value="${categorySlug}" disabled readonly>
+                                    <div class="form-text">
+                                        <small class="text-muted">CKAN group name, cannot be changed after creation.</small>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 mb-3">
+                                    <label for="description" class="form-label">
+                                        <i class="fas fa-file-text"></i> Description
+                                    </label>
+                                    <textarea class="form-control"
+                                              id="description"
+                                              th:field="*{description}"
+                                              th:classappend="${#fields.hasErrors('description')} ? 'is-invalid' : ''"
+                                              rows="3"
+                                              placeholder="Shown on the dashboard card"></textarea>
+                                    <div th:if="${#fields.hasErrors('description')}" class="invalid-feedback">
+                                        <span th:errors="*{description}"></span>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="icon" class="form-label">
+                                        <i class="fas fa-icons"></i> Icon
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i id="iconPreview" th:class="${categoryForm.icon != null and !categoryForm.icon.isEmpty()} ? ${categoryForm.icon} : 'fas fa-tags'"></i></span>
+                                        <input type="text"
+                                               class="form-control"
+                                               id="icon"
+                                               th:field="*{icon}"
+                                               th:classappend="${#fields.hasErrors('icon')} ? 'is-invalid' : ''"
+                                               placeholder="fas fa-car"
+                                               oninput="document.getElementById('iconPreview').className = this.value || 'fas fa-tags';">
+                                    </div>
+                                    <div th:if="${#fields.hasErrors('icon')}" class="invalid-feedback">
+                                        <span th:errors="*{icon}"></span>
+                                    </div>
+                                    <div class="form-text">
+                                        <small class="text-muted">Font Awesome class, e.g. <code>fas fa-car</code>.</small>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="style" class="form-label">
+                                        <i class="fas fa-palette"></i> Style
+                                    </label>
+                                    <select class="form-select" id="style" th:field="*{style}">
+                                        <option th:each="s : ${styleOptions}"
+                                                th:value="${s}"
+                                                th:text="${s.displayName}">Style</option>
+                                    </select>
+                                    <div class="form-text">
+                                        <small class="text-muted">Bootstrap color used for the dashboard card and badges.</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Form Actions -->
+                            <div class="row">
+                                <div class="col-12">
+                                    <hr>
+                                    <div class="d-flex justify-content-between">
+                                        <a th:href="@{/admin/categories}" class="btn btn-secondary">
+                                            <i class="fas fa-arrow-left"></i> Cancel
+                                        </a>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save"></i>
+                                            <span th:text="${categoryId != null ? 'Update' : 'Create'} + ' CKAN Category'">Save</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <div th:replace="~{fragments/footer :: footer}"></div>
+
+    <!-- Scripts -->
+    <th:block th:replace="~{fragments/scripts :: common}"></th:block>
+</body>
+</html>

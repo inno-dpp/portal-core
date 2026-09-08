@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/head :: common('Platform Settings')}"></head>
+<body>
+    <!-- Navigation -->
+    <nav th:replace="~{fragments/navigation :: navbar('settings')}"></nav>
+
+    <!-- Main Content -->
+    <main class="container mt-4">
+        <!-- Page Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1><i class="fas fa-cog text-primary"></i> Platform Settings</h1>
+                <p class="text-muted">Runtime configuration overrides for external integrations</p>
+            </div>
+        </div>
+
+        <!-- Flash Messages -->
+        <div th:if="${message}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> <span th:text="${message}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i> <span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- CKAN Connection Settings -->
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-database"></i> CKAN Connection</h5>
+                        <form th:action="@{/admin/settings/ckan/test}" method="post" class="mb-0">
+                            <button type="submit" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-plug"></i> Test Connection
+                            </button>
+                        </form>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">
+                            Default CKAN instance used by the portal (dataset publishing, statistics,
+                            onboarding provisioning). Values saved here are stored encrypted in the
+                            database and override the environment variables
+                            <code>CKAN_BASE_URL</code> / <code>CKAN_JWT_TOKEN</code> without a restart.
+                        </p>
+
+                        <form th:action="@{/admin/settings/ckan}" method="post">
+                            <div class="mb-3">
+                                <label for="baseUrl" class="form-label">
+                                    Base URL
+                                    <span th:if="${ckanBaseUrlOverridden}" class="badge bg-info ms-1">database override</span>
+                                    <span th:unless="${ckanBaseUrlOverridden}" class="badge bg-secondary ms-1">environment default</span>
+                                </label>
+                                <input type="url" class="form-control" id="baseUrl" name="baseUrl"
+                                       th:value="${ckanBaseUrl}" placeholder="http://localhost:5000">
+                                <div class="form-text">
+                                    Leave empty to revert to the environment default:
+                                    <code th:text="${ckanEnvBaseUrl}">http://localhost:5000</code>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="jwtToken" class="form-label">
+                                    Admin API Token
+                                    <span th:if="${ckanTokenOverridden}" class="badge bg-info ms-1">database override</span>
+                                    <span th:unless="${ckanTokenOverridden}" class="badge bg-secondary ms-1">environment default</span>
+                                </label>
+                                <input type="password" class="form-control" id="jwtToken" name="jwtToken"
+                                       autocomplete="off"
+                                       th:placeholder="${ckanTokenConfigured} ? |Current token: ${ckanTokenPreview} — leave empty to keep it| : 'No token configured — enter a CKAN API token'">
+                                <div class="form-text">
+                                    The token is never displayed after saving. Leave empty to keep the current token.
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Settings
+                                </button>
+                            </div>
+                        </form>
+
+                        <hr>
+                        <form th:action="@{/admin/settings/ckan/reset}" method="post"
+                              onsubmit="return confirm('Remove the database overrides and go back to the environment configuration?');">
+                            <button type="submit" class="btn btn-outline-danger btn-sm">
+                                <i class="fas fa-undo"></i> Reset to Environment Defaults
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-info-circle"></i> How overrides are applied</h6>
+                    </div>
+                    <div class="card-body">
+                        <ol class="mb-0 ps-3 text-muted small">
+                            <li>Per-organization CKAN connector token (if configured in the organization's tools)</li>
+                            <li>Database override saved on this page</li>
+                            <li>Environment variables (<code>CKAN_*</code> / <code>SPIP_*</code>)</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CKAN Categories -->
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-tags"></i> CKAN Categories</h5>
+                        <a th:href="@{/admin/categories}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-arrow-right"></i> Manage Categories
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">
+                            Use-case categories (CKAN groups) shown on the dashboard and granted to
+                            onboarded organizations. Managed as portal DB rows and kept in sync with CKAN.
+                        </p>
+                        <div class="d-flex gap-4">
+                            <div>
+                                <div class="fs-4 fw-semibold" th:text="${activeCategoryCount}">0</div>
+                                <div class="text-muted small">Active</div>
+                            </div>
+                            <div>
+                                <div class="fs-4 fw-semibold text-muted" th:text="${totalCategoryCount}">0</div>
+                                <div class="text-muted small">Total (incl. inactive)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SPIP Platform Settings -->
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-shield-alt"></i> SPIP Platform</h5>
+                        <form th:action="@{/admin/settings/spip/test}" method="post" class="mb-0">
+                            <button type="submit" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-plug"></i> Test Connection
+                            </button>
+                        </form>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">
+                            SPIP instance used for organization onboarding, attribute management and
+                            policies. Values saved here are stored encrypted in the database and
+                            override the environment variables <code>SPIP_BASE_URL</code>,
+                            <code>SPIP_CUSTOMER_TAG</code>, <code>SPIP_ADMIN_USERNAME</code>,
+                            <code>SPIP_ADMIN_PASSWORD</code> and <code>SPIP_DEFAULT_ROLE</code>
+                            without a restart.
+                        </p>
+
+                        <form th:action="@{/admin/settings/spip}" method="post">
+                            <div class="mb-3">
+                                <label for="spipBaseUrl" class="form-label">
+                                    Base URL
+                                    <span th:if="${spipBaseUrlOverridden}" class="badge bg-info ms-1">database override</span>
+                                    <span th:unless="${spipBaseUrlOverridden}" class="badge bg-secondary ms-1">environment default</span>
+                                </label>
+                                <input type="url" class="form-control" id="spipBaseUrl" name="baseUrl"
+                                       th:value="${spipBaseUrl}" placeholder="https://localhost:8002">
+                                <div class="form-text">
+                                    Leave empty to revert to the environment default:
+                                    <code th:text="${spipEnvBaseUrl}">https://localhost:8002</code>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="spipCustomerTag" class="form-label">
+                                        Customer Tag
+                                        <span th:if="${spipCustomerTagOverridden}" class="badge bg-info ms-1">database override</span>
+                                        <span th:unless="${spipCustomerTagOverridden}" class="badge bg-secondary ms-1">environment default</span>
+                                    </label>
+                                    <input type="text" class="form-control" id="spipCustomerTag" name="customerTag"
+                                           th:value="${spipCustomerTag}">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="spipDefaultRole" class="form-label">
+                                        Default Role
+                                        <span th:if="${spipDefaultRoleOverridden}" class="badge bg-info ms-1">database override</span>
+                                        <span th:unless="${spipDefaultRoleOverridden}" class="badge bg-secondary ms-1">environment default</span>
+                                    </label>
+                                    <input type="text" class="form-control" id="spipDefaultRole" name="defaultRole"
+                                           th:value="${spipDefaultRole}">
+                                    <div class="form-text">Role assigned to new organization users during onboarding.</div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="spipAdminUsername" class="form-label">
+                                        Admin Username
+                                        <span th:if="${spipAdminUsernameOverridden}" class="badge bg-info ms-1">database override</span>
+                                        <span th:unless="${spipAdminUsernameOverridden}" class="badge bg-secondary ms-1">environment default</span>
+                                    </label>
+                                    <input type="text" class="form-control" id="spipAdminUsername" name="adminUsername"
+                                           autocomplete="off" th:value="${spipAdminUsername}">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="spipAdminPassword" class="form-label">
+                                        Admin Password
+                                        <span th:if="${spipAdminPasswordOverridden}" class="badge bg-info ms-1">database override</span>
+                                        <span th:unless="${spipAdminPasswordOverridden}" class="badge bg-secondary ms-1">environment default</span>
+                                    </label>
+                                    <input type="password" class="form-control" id="spipAdminPassword" name="adminPassword"
+                                           autocomplete="new-password"
+                                           th:placeholder="${spipAdminPasswordConfigured} ? 'Password configured — leave empty to keep it' : 'No password configured'">
+                                    <div class="form-text">Never displayed after saving. Leave empty to keep the current password.</div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Settings
+                                </button>
+                            </div>
+                        </form>
+
+                        <hr>
+                        <form th:action="@{/admin/settings/spip/reset}" method="post"
+                              onsubmit="return confirm('Remove the database overrides and go back to the environment configuration?');">
+                            <button type="submit" class="btn btn-outline-danger btn-sm">
+                                <i class="fas fa-undo"></i> Reset to Environment Defaults
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Keycloak Identity Provider Settings -->
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-user-lock"></i> Keycloak Identity Provider</h5>
+                        <form th:action="@{/admin/settings/keycloak/test}" method="post" class="mb-0">
+                            <button type="submit" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-plug"></i> Test Connection
+                            </button>
+                        </form>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">
+                            Default Keycloak instance used to provision organization groups and first
+                            users during onboarding. These values pre-fill the Keycloak card on the
+                            onboarding sync form, where they can still be overridden per organization.
+                            Values saved here are stored encrypted in the database and override the
+                            environment variables <code>KEYCLOAK_BASE_URL</code>,
+                            <code>KEYCLOAK_REALM</code>, <code>KEYCLOAK_ADMIN_CLIENT_ID</code> and
+                            <code>KEYCLOAK_ADMIN_CLIENT_SECRET</code> without a restart.
+                        </p>
+
+                        <form th:action="@{/admin/settings/keycloak}" method="post">
+                            <div class="mb-3">
+                                <label for="keycloakBaseUrl" class="form-label">
+                                    Base URL
+                                    <span th:if="${keycloakBaseUrlOverridden}" class="badge bg-info ms-1">database override</span>
+                                    <span th:unless="${keycloakBaseUrlOverridden}" class="badge bg-secondary ms-1">environment default</span>
+                                </label>
+                                <input type="url" class="form-control" id="keycloakBaseUrl" name="baseUrl"
+                                       th:value="${keycloakBaseUrl}" placeholder="http://localhost:8081">
+                                <div class="form-text">
+                                    Leave empty to revert to the environment default:
+                                    <code th:text="${keycloakEnvBaseUrl}">http://localhost:8081</code>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="keycloakRealm" class="form-label">
+                                        Realm
+                                        <span th:if="${keycloakRealmOverridden}" class="badge bg-info ms-1">database override</span>
+                                        <span th:unless="${keycloakRealmOverridden}" class="badge bg-secondary ms-1">environment default</span>
+                                    </label>
+                                    <input type="text" class="form-control" id="keycloakRealm" name="realm"
+                                           th:value="${keycloakRealm}">
+                                    <div class="form-text">Realm in which organization groups and users are created.</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="keycloakClientId" class="form-label">
+                                        Admin Client ID
+                                        <span th:if="${keycloakClientIdOverridden}" class="badge bg-info ms-1">database override</span>
+                                        <span th:unless="${keycloakClientIdOverridden}" class="badge bg-secondary ms-1">environment default</span>
+                                    </label>
+                                    <input type="text" class="form-control" id="keycloakClientId" name="clientId"
+                                           autocomplete="off" th:value="${keycloakClientId}">
+                                    <div class="form-text">Confidential client (service account) used for Admin API calls.</div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="keycloakClientSecret" class="form-label">
+                                    Admin Client Secret
+                                    <span th:if="${keycloakSecretOverridden}" class="badge bg-info ms-1">database override</span>
+                                    <span th:unless="${keycloakSecretOverridden}" class="badge bg-secondary ms-1">environment default</span>
+                                </label>
+                                <input type="password" class="form-control" id="keycloakClientSecret" name="clientSecret"
+                                       autocomplete="new-password"
+                                       th:placeholder="${keycloakSecretConfigured} ? 'Secret configured — leave empty to keep it' : 'No secret configured'">
+                                <div class="form-text">Never displayed after saving. Leave empty to keep the current secret.</div>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Settings
+                                </button>
+                            </div>
+                        </form>
+
+                        <hr>
+                        <form th:action="@{/admin/settings/keycloak/reset}" method="post"
+                              onsubmit="return confirm('Remove the database overrides and go back to the environment configuration?');">
+                            <button type="submit" class="btn btn-outline-danger btn-sm">
+                                <i class="fas fa-undo"></i> Reset to Environment Defaults
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <div th:replace="~{fragments/footer :: footer}"></div>
+
+    <!-- Scripts -->
+    <th:block th:replace="~{fragments/scripts :: common}"></th:block>
+</body>
+</html>

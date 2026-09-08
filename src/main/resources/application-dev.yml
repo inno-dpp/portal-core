@@ -1,0 +1,65 @@
+server:
+  port: 8085
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:d4c_portal_dev
+    driverClassName: org.h2.Driver
+    username: sa
+    password:
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        web-allow-others: false
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    defer-datasource-initialization: true
+    open-in-view: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+    env:
+      show-values: always
+
+app:
+  # Local-development encryption key (public knowledge — never use outside dev)
+  encryption:
+    key: ${ENCRYPTION_KEY:Dev_Encryption_Key_D4C_Portal_32}
+  # Dev serves on port 8085; generated absolute links must match
+  base-url: ${APP_BASE_URL:http://localhost:8085}
+  # No SMTP server in local development; override with EMAIL_ENABLED=true
+  email:
+    enabled: ${EMAIL_ENABLED:false}
+  # Demo data defaults to on for local development; override with DEMO_DATA_ENABLED=false
+  demo-data:
+    enabled: ${DEMO_DATA_ENABLED:true}
+  # Matches the dev Keycloak container (docker-compose.keycloak.yml); the secret is
+  # baked into docker/keycloak/dev-realm.json and is public knowledge — dev only.
+  keycloak:
+    base-url: ${KEYCLOAK_BASE_URL:http://localhost:8081}
+    realm: ${KEYCLOAK_REALM:data4circ}
+    client-id: ${KEYCLOAK_ADMIN_CLIENT_ID:portal-admin}
+    client-secret: ${KEYCLOAK_ADMIN_CLIENT_SECRET:dev-portal-admin-secret}
+    mirror-portal-password: ${KEYCLOAK_MIRROR_PORTAL_PASSWORD:true}
+
+logging:
+  level:
+    com.data4circ.portal: INFO
+    org.springframework.security: INFO

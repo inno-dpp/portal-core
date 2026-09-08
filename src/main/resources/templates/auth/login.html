@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'Login - ' + ${branding.brandName}">Login - Portal</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" th:href="@{${branding.assets.favicon}}">
+
+    <!-- Google Fonts: Montserrat (headings) + Open Sans (body) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap CSS -->
+    <link th:href="@{/webjars/bootstrap/5.3.0/css/bootstrap.min.css}" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link th:href="@{/css/custom.css}" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <!-- Dynamic Branding CSS Variables (loaded after custom.css to override defaults) -->
+    <style th:inline="text">
+        :root {
+            --primary-color: [[${branding.colors.primary}]];
+            --secondary-color: [[${branding.colors.secondary}]];
+            --accent-color: [[${branding.colors.accent}]];
+            --info-color: [[${branding.colors.info}]];
+            --success-color: [[${branding.colors.success}]];
+            --warning-color: [[${branding.colors.warning}]];
+            --danger-color: [[${branding.colors.danger}]];
+            --text-color: [[${branding.colors.text}]];
+            --light-text-color: [[${branding.colors.lightText}]];
+            --font-family: [[${branding.typography.fontFamily}]];
+            --heading-font-family: [[${branding.typography.headingFontFamily}]];
+            --navbar-background: [[${branding.navbar.background}]];
+            --navbar-text-color: [[${branding.navbar.textColor}]];
+        }
+    </style>
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-box">
+            <div class="text-center mb-4">
+                <img th:src="@{${branding.assets.logoSmall}}"
+                     th:alt="${branding.brandName}"
+                     style="max-width: 220px; margin-bottom: 12px;"
+                     onerror="this.style.display='none'">
+                <h1 class="login-heading mb-1" th:text="'Sign in to ' + ${branding.brandName}">Sign in to Portal</h1>
+                <p class="mb-0 login-subtext">Sign in with the email and password you set up after your access request was approved.</p>
+            </div>
+            <!-- Alerts -->
+            <div th:if="${error}" class="alert alert-danger" role="alert">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span th:text="${error}"></span>
+            </div>
+
+            <div th:if="${message}" class="alert alert-success" role="alert">
+                <i class="fas fa-check-circle"></i>
+                <span th:text="${message}"></span>
+            </div>
+
+            <!-- Login Form -->
+            <form th:action="@{/login}" method="post" class="form">
+                <div class="mb-3">
+                    <input type="text" class="form-control" id="username" name="username"
+                           placeholder="Enter your email" required autofocus>
+                </div>
+
+                <div class="mb-3">
+                    <input type="password" class="form-control" id="password" name="password"
+                           placeholder="Enter your password" required>
+                </div>
+
+                <p class="access-note mb-3">
+                    <i class="fas fa-shield-alt" aria-hidden="true"></i>
+                    Access is currently restricted to approved project partners.
+                </p>
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="form-check remember-me mb-0">
+                        <input type="checkbox" class="form-check-input" id="remember-me" name="remember-me">
+                        <label class="form-check-label" for="remember-me">
+                            Remember me
+                        </label>
+                    </div>
+                    <a th:href="@{/forgot-password}" style="color: var(--accent-color); text-decoration: none; font-size: 0.9em;">
+                        Forgot Password?
+                    </a>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary" id="loginSubmitBtn">
+                        <i class="fas fa-sign-in-alt"></i> <span id="loginSubmitLabel">Sign In</span>
+                    </button>
+                </div>
+            </form>
+
+            <div class="text-center mt-3">
+                <small style="color: #ccc;">
+                    Don't have access yet?
+                    <a th:href="@{/join}" style="color: var(--accent-color); text-decoration: none;">Request access</a>
+                </small>
+            </div>
+
+        <!-- Demo Disclaimer Footer -->
+        <div class="text-center demo-disclaimer">
+            <small>
+                <i class="fas fa-info-circle"></i>
+                This is a prototype application for demonstration purposes only.
+            </small>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script th:src="@{/webjars/bootstrap/5.3.0/js/bootstrap.bundle.min.js}"></script>
+
+    <!-- Loading state feedback: the form is a full page POST, so this only affects the brief moment before navigation -->
+    <script>
+        document.querySelector('.login-box form').addEventListener('submit', function() {
+            const btn = document.getElementById('loginSubmitBtn');
+            const label = document.getElementById('loginSubmitLabel');
+            btn.disabled = true;
+            label.textContent = 'Signing in…';
+        });
+    </script>
+</body>
+</html>

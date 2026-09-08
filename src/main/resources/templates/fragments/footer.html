@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+    <!-- Footer Fragment -->
+    <footer th:fragment="footer" class="bg-light text-center text-muted py-3 mt-5" role="contentinfo">
+        <div class="container">
+            <p>&copy; <span th:text="${#temporals.year(#temporals.createNow())}">2026</span> <span th:text="${branding.brandName}">Portal</span>. <span th:text="${branding.brandTagline}">Circular Economy Data Platform</span></p>
+            <p class="mb-0 footer-version"><small>Version: <span th:text="${appVersion}">0.1.0-beta.12</span></small></p>
+        </div>
+    </footer>
+</body>
+</html>

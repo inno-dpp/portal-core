@@ -1,0 +1,82 @@
+{
+  "id": "data4circ",
+  "realm": "data4circ",
+  "enabled": true,
+  "displayName": "Portal for Circularity (dev)",
+  "sslRequired": "none",
+  "resetPasswordAllowed": true,
+  "bruteForceProtected": true,
+  "clients": [
+    {
+      "id": "b1f7a9c0-0000-0000-0000-000000000001",
+      "clientId": "portal-admin",
+      "name": "Portal provisioning service account",
+      "description": "Confidential client used by the portal to provision organization groups and first users during onboarding. Dev-only secret — never reuse outside local development.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "dev-portal-admin-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false
+    },
+    {
+      "id": "b1f7a9c0-0000-0000-0000-000000000003",
+      "clientId": "documanager",
+      "name": "Documents Manager (local dev)",
+      "description": "Confidential client used by documanager-for-circularity's web UI for Keycloak OIDC login (Authorization Code flow). Dev-only secret — never reuse outside local development.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "dev-documanager-secret",
+      "serviceAccountsEnabled": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://localhost:8080/login/oauth2/code/keycloak"],
+      "webOrigins": ["http://localhost:8080"],
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:8080/login?logout=true"
+      },
+      "protocolMappers": [
+        {
+          "name": "groups",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "full.path": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "claim.name": "groups"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "id": "b1f7a9c0-0000-0000-0000-000000000002",
+      "username": "service-account-portal-admin",
+      "enabled": true,
+      "serviceAccountClientId": "portal-admin",
+      "createdTimestamp": 0,
+      "emailVerified": false,
+      "totp": false,
+      "disableableCredentialTypes": [],
+      "requiredActions": [],
+      "notBefore": 0,
+      "realmRoles": ["default-roles-data4circ"],
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "query-users",
+          "query-groups"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+# Dev/test Keycloak instance for the onboarding synchronization feature (opt-in).
+#
+# Standalone overlay following the one-file-per-concern convention: it can run on
+# its own next to `mvn spring-boot:run -Dspring-boot.run.profiles=dev` (the dev
+# profile defaults point at it) or be combined with the local stack:
+#
+#   docker compose -f docker-compose.keycloak.yml up -d
+#   docker compose -f docker-compose.local.yml -f docker-compose.keycloak.yml up -d
+#
+# The combined form is required whenever the portal itself runs containerized
+# (docker-compose.local.yml's `app` service) and needs to reach Keycloak for
+# the onboarding sync — this file attaches to that stack's `d4c-network` so
+# the app container can resolve Keycloak by name (http://keycloak:8080)
+# instead of the host-published port, which isn't reachable from inside
+# another container. `d4c-network` must already exist (i.e. bring up
+# docker-compose.local.yml or docker-compose.prod.yml first) or `up` fails —
+# running this file alone still works for the admin console / a host-run
+# `mvn spring-boot:run` app, just not for a containerized app.
+#
+# Admin console: http://localhost:8081 (admin / admin — dev only).
+# The imported realm `data4circ` ships the `portal-admin` service-account client
+# (secret `dev-portal-admin-secret`, baked into docker/keycloak/dev-realm.json and
+# matched by the dev profile defaults) with the realm-management roles the portal
+# needs to provision organization groups and first users.
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: d4c-portal-keycloak-dev
+    command: start-dev --import-realm
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_DEV_ADMIN_USERNAME:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_DEV_ADMIN_PASSWORD:-admin}
+      KC_HTTP_PORT: "8080"
+      KC_HEALTH_ENABLED: "true"
+      # Fixed hostname so every URL Keycloak issues (authorization_endpoint,
+      # token_endpoint, jwks_uri, issuer) is stable and resolvable both from
+      # a browser on the Windows host and from other Docker containers (e.g.
+      # documanager-for-circularity's app container), instead of mirroring
+      # whichever Host header the request happened to arrive on. Requires
+      # `127.0.0.1 d4c.local` in the Windows hosts file and, for containers,
+      # an `extra_hosts: ["d4c.local:host-gateway"]` entry.
+      KC_HOSTNAME: http://d4c.local:${KEYCLOAK_PORT_EXTERNAL:-8081}
+    ports:
+      - "${KEYCLOAK_PORT_EXTERNAL:-8081}:8080"
+    volumes:
+      - ./docker/keycloak/dev-realm.json:/opt/keycloak/data/import/dev-realm.json:ro
+      # Persist dev-mode's embedded H2 DB across restarts/recreates, so
+      # clients/groups/users created at runtime (e.g. via the admin API or
+      # portal onboarding) survive `docker compose up --force-recreate` and
+      # aren't silently reset to just what dev-realm.json seeds. `--import-realm`
+      # skips realms that already exist, so this is safe to combine with it.
+      - keycloak-dev-data:/opt/keycloak/data
+    networks:
+      d4c-network:
+        aliases:
+          - keycloak
+    healthcheck:
+      # curl/wget are absent from the Keycloak image; probe the management port via bash
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q 'UP' <&3"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  keycloak-dev-data:
+
+networks:
+  # Owned by docker-compose.local.yml (docker-compose.prod.yml has its own
+  # copy for the prod stack) — must already exist when this file runs.
+  d4c-network:
+    external: true
+    name: portal-for-circularity_d4c-network

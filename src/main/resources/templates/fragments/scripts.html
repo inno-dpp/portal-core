@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+    <!--
+    Common Scripts Fragment
+
+    Usage (basic - Bootstrap + jQuery):
+    <th:block th:replace="~{fragments/scripts :: common}"></th:block>
+
+    Usage (with extra scripts):
+    <th:block th:replace="~{fragments/scripts :: commonWithExtra(~{::extra-scripts})}"></th:block>
+    With in your template:
+    <th:block th:fragment="extra-scripts">
+        <script th:src="@{/js/my-page.js}"></script>
+    </th:block>
+    -->
+
+    <!-- Simple common scripts (no parameters - for most templates) -->
+    <th:block th:fragment="common">
+        <!-- Bootstrap JS Bundle (includes Popper.js) -->
+        <script th:src="@{/webjars/bootstrap/5.3.0/js/bootstrap.bundle.min.js}"></script>
+
+        <!-- jQuery -->
+        <script th:src="@{/webjars/jquery/3.7.0/jquery.min.js}"></script>
+
+        <!-- Notifications (for authenticated users) -->
+        <script sec:authorize="isAuthenticated()" th:src="@{/js/notifications.js}"></script>
+    </th:block>
+
+    <!-- Extended common scripts with extra content -->
+    <th:block th:fragment="commonWithExtra(extraScripts)">
+        <!-- Bootstrap JS Bundle (includes Popper.js) -->
+        <script th:src="@{/webjars/bootstrap/5.3.0/js/bootstrap.bundle.min.js}"></script>
+
+        <!-- jQuery -->
+        <script th:src="@{/webjars/jquery/3.7.0/jquery.min.js}"></script>
+
+        <!-- Notifications (for authenticated users) -->
+        <script sec:authorize="isAuthenticated()" th:src="@{/js/notifications.js}"></script>
+
+        <!-- Extension point for page-specific scripts -->
+        <th:block th:replace="${extraScripts}" />
+    </th:block>
+
+    <!-- Minimal scripts (Bootstrap only, no jQuery) -->
+    <th:block th:fragment="minimal">
+        <script th:src="@{/webjars/bootstrap/5.3.0/js/bootstrap.bundle.min.js}"></script>
+    </th:block>
+</body>
+</html>

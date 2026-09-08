@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!--
+    Common Head Fragment
+
+    Usage (simple - most templates):
+    <head th:replace="~{fragments/head :: common('Page Title')}"></head>
+
+    Usage (with extra content):
+    <head th:replace="~{fragments/head :: commonWithExtra('Page Title', ~{::extra-head})}"></head>
+    With in your template:
+    <th:block th:fragment="extra-head">
+        <link th:href="@{/css/extra.css}" rel="stylesheet">
+    </th:block>
+    -->
+
+    <!-- Simple common head (single parameter - for most templates) -->
+    <th:block th:fragment="common(pageTitle)">
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <!-- CSRF Protection Meta Tags (required for AJAX requests) -->
+        <meta name="_csrf" th:content="${_csrf?.token}"/>
+        <meta name="_csrf_header" th:content="${_csrf?.headerName}"/>
+
+        <!-- Dynamic Page Title -->
+        <title th:text="${pageTitle} ? ${pageTitle} + ' - ' + ${branding.brandName} : ${branding.brandName}">Portal</title>
+
+        <!-- Favicon -->
+        <link rel="icon" type="image/png" th:href="@{${branding.assets.favicon}}">
+
+        <!-- Google Fonts: Montserrat (headings) + Open Sans (body) -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+        <!-- Bootstrap CSS (via WebJars) -->
+        <link th:href="@{/webjars/bootstrap/5.3.0/css/bootstrap.min.css}" rel="stylesheet">
+
+        <!-- Custom Application CSS -->
+        <link th:href="@{/css/custom.css}" rel="stylesheet">
+
+        <!-- Dynamic Branding CSS Variables (loaded after custom.css to override defaults) -->
+        <style th:inline="text">
+            :root {
+                --primary-color: [[${branding.colors.primary}]];
+                --secondary-color: [[${branding.colors.secondary}]];
+                --accent-color: [[${branding.colors.accent}]];
+                --info-color: [[${branding.colors.info}]];
+                --success-color: [[${branding.colors.success}]];
+                --warning-color: [[${branding.colors.warning}]];
+                --danger-color: [[${branding.colors.danger}]];
+                --text-color: [[${branding.colors.text}]];
+                --light-text-color: [[${branding.colors.lightText}]];
+                --font-family: [[${branding.typography.fontFamily}]];
+                --heading-font-family: [[${branding.typography.headingFontFamily}]];
+                --navbar-background: [[${branding.navbar.background}]];
+                --navbar-text-color: [[${branding.navbar.textColor}]];
+            }
+        </style>
+
+        <!-- Font Awesome Icons (with SRI hash for security) -->
+        <link rel="stylesheet"
+              href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+              integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
+              crossorigin="anonymous"
+              referrerpolicy="no-referrer">
+    </th:block>
+
+    <!-- Extended common head with extra content (two parameters) -->
+    <th:block th:fragment="commonWithExtra(pageTitle, extraHead)">
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <!-- CSRF Protection Meta Tags (required for AJAX requests) -->
+        <meta name="_csrf" th:content="${_csrf?.token}"/>
+        <meta name="_csrf_header" th:content="${_csrf?.headerName}"/>
+
+        <!-- Dynamic Page Title -->
+        <title th:text="${pageTitle} ? ${pageTitle} + ' - ' + ${branding.brandName} : ${branding.brandName}">Portal</title>
+
+        <!-- Favicon -->
+        <link rel="icon" type="image/png" th:href="@{${branding.assets.favicon}}">
+
+        <!-- Google Fonts: Montserrat (headings) + Open Sans (body) -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+        <!-- Bootstrap CSS (via WebJars) -->
+        <link th:href="@{/webjars/bootstrap/5.3.0/css/bootstrap.min.css}" rel="stylesheet">
+
+        <!-- Custom Application CSS -->
+        <link th:href="@{/css/custom.css}" rel="stylesheet">
+
+        <!-- Dynamic Branding CSS Variables (loaded after custom.css to override defaults) -->
+        <style th:inline="text">
+            :root {
+                --primary-color: [[${branding.colors.primary}]];
+                --secondary-color: [[${branding.colors.secondary}]];
+                --accent-color: [[${branding.colors.accent}]];
+                --info-color: [[${branding.colors.info}]];
+                --success-color: [[${branding.colors.success}]];
+                --warning-color: [[${branding.colors.warning}]];
+                --danger-color: [[${branding.colors.danger}]];
+                --text-color: [[${branding.colors.text}]];
+                --light-text-color: [[${branding.colors.lightText}]];
+                --font-family: [[${branding.typography.fontFamily}]];
+                --heading-font-family: [[${branding.typography.headingFontFamily}]];
+                --navbar-background: [[${branding.navbar.background}]];
+                --navbar-text-color: [[${branding.navbar.textColor}]];
+            }
+        </style>
+
+        <!-- Font Awesome Icons (with SRI hash for security) -->
+        <link rel="stylesheet"
+              href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+              integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
+              crossorigin="anonymous"
+              referrerpolicy="no-referrer">
+
+        <!-- Extension point for page-specific head content -->
+        <th:block th:replace="${extraHead}" />
+    </th:block>
+</head>
+</html>

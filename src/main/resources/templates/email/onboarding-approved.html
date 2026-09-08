@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #198754;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            background-color: #f8f9fa;
+            padding: 30px;
+            border-radius: 0 0 5px 5px;
+        }
+        .button {
+            display: inline-block;
+            background-color: #0f5132;
+            color: #ffffff;
+            padding: 14px 34px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+            font-size: 1.1em;
+            letter-spacing: 0.2px;
+            border: 1px solid #0a3622;
+        }
+        .cta-box {
+            text-align: center;
+            margin: 25px 0;
+        }
+        .credentials-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .info-box {
+            background-color: #d1e7dd;
+            border-left: 4px solid #198754;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .note-box {
+            background-color: #e7f3ff;
+            border-left: 4px solid #0d6efd;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 0.95em;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        .warning {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .muted {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Congratulations!</h1>
+        <p>Your Onboarding Request Has Been Approved</p>
+    </div>
+
+    <div class="content">
+        <h2>Welcome to [[${branding.brandName}]]</h2>
+
+        <p>Dear <span th:text="${contactName}">Contact Name</span>,</p>
+
+        <p>We are pleased to inform you that your organization, <strong th:text="${companyName}">Company Name</strong>,
+        has been successfully approved to join [[${branding.brandName}]]!</p>
+
+        <div class="info-box">
+            <p style="margin: 0;"><strong>Your organization has been created and you have been assigned as the Organization Administrator.</strong></p>
+        </div>
+
+        <!-- ============================ SECURE MODE (default / production) ============================ -->
+        <th:block th:if="${secureMode}">
+            <h3>Next step: sign in to the portal</h3>
+            <p>Your username is <strong th:text="${username}">username</strong>
+               (this is your email address). To get started, set your password using the secure link below,
+               then sign in to the portal.</p>
+
+            <div class="cta-box">
+                <a th:href="${setPasswordUrl}" class="button" href="#" style="color: #ffffff;">Set your password &amp; sign in</a>
+            </div>
+
+            <div class="note-box">
+                <p style="margin: 0 0 8px 0;">🔒 <strong>For security reasons, this link expires in 24 hours</strong>
+                   and can be used only once.</p>
+                <p style="margin: 0;">You will be asked to create a new password before your first sign-in.</p>
+            </div>
+
+            <div class="note-box">
+                <p style="margin: 0 0 8px 0;">Your <strong>SPIP</strong> and <strong>CKAN</strong> connector credentials
+                   are not included in this email for security reasons. After signing in, open
+                   <strong>&ldquo;My Organization&rdquo;</strong> from the left-hand menu &mdash; your SPIP username and
+                   password and the CKAN API token are listed there (click the eye icon to reveal each value).</p>
+                <p style="margin: 0;">Your SPIP credentials also sign you in to SPIP-backed tools, including the
+                   <strong>Documents manager</strong> application.</p>
+            </div>
+
+            <p><strong>What's next?</strong></p>
+            <ol>
+                <li>Sign in to [[${branding.brandName}]] using the link above.</li>
+                <li>Create your new password.</li>
+                <li>Review your organisation profile.</li>
+                <li>Configure connectors only if your role requires technical access (SPIP / CKAN).</li>
+                <li>Start exploring datasets and collaboration features.</li>
+            </ol>
+
+            <p class="muted">Need help? Contact the [[${branding.brandName}]] support team at
+               <a th:href="'mailto:' + ${supportEmail}" th:text="${supportEmail}">support@dataspace-labs.com</a>.</p>
+        </th:block>
+
+        <!-- ============================ LEGACY MODE (dev / test only) ============================ -->
+        <th:block th:unless="${secureMode}">
+            <div class="credentials-box">
+                <h3>Portal Login Credentials</h3>
+                <p><strong>Username:</strong> <span th:text="${username}">username</span></p>
+                <p><strong>Temporary Password:</strong> <span th:text="${temporaryPassword}">password</span></p>
+                <p class="warning">⚠️ IMPORTANT: Please change this password immediately after your first login.</p>
+            </div>
+
+            <div class="credentials-box" th:if="${spipUsername}">
+                <h3>SPIP Platform Credentials</h3>
+                <p><strong>SPIP Username:</strong> <span th:text="${spipUsername}">spipUsername</span></p>
+                <p><strong>SPIP Password:</strong> <span th:text="${spipPassword}">spipPassword</span></p>
+                <p style="margin-top: 10px; font-size: 0.9em;">
+                    These credentials are for accessing the SPIP (Secure Privacy-Preserving Infrastructure Platform)
+                    for secure data sharing and attribute-based access control. They also work for the CKAN
+                    data catalog below.
+                </p>
+            </div>
+
+            <!-- Only rendered when CKAN provisioned its own account (SPIP was not synced) -->
+            <div class="credentials-box" th:if="${ckanUsername}">
+                <h3>CKAN Data Catalog Login</h3>
+                <p><strong>CKAN Username:</strong> <span th:text="${ckanUsername}">ckanUsername</span></p>
+                <p><strong>CKAN Password:</strong> <span th:text="${ckanPassword}">ckanPassword</span></p>
+            </div>
+
+            <div class="credentials-box" th:if="${ckanApiToken}">
+                <h3>CKAN Data Catalog Credentials</h3>
+                <p><strong>CKAN API Token:</strong> <span th:text="${ckanApiToken}" style="word-break: break-all;">token</span></p>
+                <p style="margin-top: 10px; font-size: 0.9em;">
+                    Use this token to publish datasets to the CKAN data catalog via the API.
+                </p>
+                <p class="warning">This token cannot be retrieved again. Please store it securely.</p>
+            </div>
+
+            <div class="credentials-box" th:if="${keycloakUsername}">
+                <h3>Keycloak Identity Provider Credentials</h3>
+                <p><strong>Keycloak Username:</strong> <span th:text="${keycloakUsername}">keycloakUsername</span></p>
+                <p><strong>Temporary Password:</strong> <span th:text="${keycloakPassword}">keycloakPassword</span></p>
+                <p th:if="${keycloakAccountUrl}" style="margin-top: 10px; font-size: 0.9em;">
+                    Manage your account at
+                    <a th:href="${keycloakAccountUrl}" th:text="${keycloakAccountUrl}">account console</a>.
+                </p>
+                <p class="warning">⚠️ IMPORTANT: You will be required to change this password at your first login.</p>
+            </div>
+
+            <div class="cta-box">
+                <a th:href="${loginUrl}" class="button" style="color: #ffffff;">Login to Portal</a>
+            </div>
+
+            <p><strong>What's Next?</strong></p>
+            <ul>
+                <li>Log in to the portal using the credentials above</li>
+                <li>Manage your organization's profile and settings</li>
+                <li>Configure and manage data connectors</li>
+                <li>Access and share data within the dataspace</li>
+            </ul>
+        </th:block>
+
+        <p>We look forward to your participation in the [[${branding.brandName}]] ecosystem!</p>
+
+        <p>Best regards,<br>
+        <span th:text="${branding.teamName}">The Portal Team</span></p>
+    </div>
+
+    <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px; border-radius: 5px;">
+        <p style="margin: 0; font-size: 0.9em; color: #856404;">
+            <strong>⚠️ Development Notice:</strong> This platform is currently in development and testing phase.
+            It is not yet production-ready. Features and data may be subject to change.
+            Please do not use for critical or sensitive operations at this time.
+        </p>
+    </div>
+
+    <div class="footer">
+        <p th:unless="${secureMode}">This email contains sensitive information. Please keep your credentials secure.</p>
+        <p>&copy; <span th:text="${year}">2025</span> <span th:text="${branding.copyrightHolder}">Portal</span>. All rights reserved.</p>
+    </div>
+</body>
+</html>

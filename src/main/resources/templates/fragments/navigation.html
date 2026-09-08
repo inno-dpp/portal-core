@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+    <!-- Main Navigation Fragment with Password Warning -->
+    <!-- Usage: <th:block th:replace="~{fragments/navigation :: navbar('dashboard')}"></th:block> -->
+    <!-- activePage values: dashboard, organizations, my-organization, onboarding, connectors, spip, profile, settings -->
+    <th:block th:fragment="navbar(activePage)">
+    <!-- Navbar dropdowns (notifications, user menu) must render above any sticky/positioned
+         page content below them - e.g. the Organizations page's sticky filter bar sits at
+         Bootstrap's standard sticky z-index (1020), which otherwise outranks a dropdown-menu's
+         default z-index (1000) and visually cuts off part of the open dropdown. This applies
+         regardless of which page is showing, since the navbar is shared across all of them. -->
+    <style>
+        .navbar .dropdown-menu {
+            z-index: 1030;
+        }
+    </style>
+    <nav class="navbar navbar-expand-lg navbar-dark" role="navigation" aria-label="Main navigation">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" th:href="@{/}">
+                <img th:src="@{${branding.assets.logoSmall}}"
+                     th:alt="${branding.brandName}"
+                     style="height: 30px; margin-right: 10px;"
+                     onerror="this.style.display='none'">
+                <strong th:text="${branding.brandName}">Portal</strong>
+            </a>
+
+            <button class="navbar-toggler" type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#navbarNav"
+                    aria-controls="navbarNav"
+                    aria-expanded="false"
+                    aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <!-- Dashboard -->
+                    <li class="nav-item">
+                        <a class="nav-link"
+                           th:href="@{/}"
+                           th:classappend="${activePage == 'dashboard'} ? 'active' : ''"
+                           th:attr="aria-current=${activePage == 'dashboard'} ? 'page' : null">
+                            <i class="fas fa-home" aria-hidden="true"></i> Dashboard
+                        </a>
+                    </li>
+
+                    <!-- Organizations -->
+                    <li class="nav-item">
+                        <a class="nav-link"
+                           th:href="@{/organizations}"
+                           th:classappend="${activePage == 'organizations'} ? 'active' : ''"
+                           th:attr="aria-current=${activePage == 'organizations'} ? 'page' : null">
+                            <i class="fas fa-building" aria-hidden="true"></i> Organizations
+                        </a>
+                    </li>
+
+                    <!-- My Organization (for org members) -->
+                    <li class="nav-item" sec:authorize="hasAnyRole('ORG_ADMIN', 'ORG_MEMBER', 'SPIP_PRIVILEGED_USER')">
+                        <a class="nav-link position-relative"
+                           th:href="@{/organizations/my-organization}"
+                           th:classappend="${activePage == 'my-organization'} ? 'active' : ''"
+                           th:attr="aria-current=${activePage == 'my-organization'} ? 'page' : null">
+                            <i class="fas fa-building" aria-hidden="true"></i> My Organization
+                        </a>
+                    </li>
+
+                    <!-- Pending collaboration requests CTA (ORG_ADMIN only, only when there are pending) -->
+                    <li class="nav-item d-flex align-items-center"
+                        sec:authorize="hasRole('ORG_ADMIN')"
+                        th:if="${pendingCollabCount != null and pendingCollabCount > 0
+                                and activePage != 'guide'
+                                and #authentication.principal.organization != null}">
+                        <a class="nav-link btn btn-warning btn-sm fw-semibold text-dark py-1 px-2 mx-1"
+                           th:href="@{/organizations/{id}/edit(id=${#authentication.principal.organization.id})} + '#collaboration-requests-section'"
+                           title="Review pending collaboration requests">
+                            <i class="fas fa-handshake" aria-hidden="true"></i>
+                            <span th:text="${pendingCollabCount}">1</span>
+                            <span th:text="${pendingCollabCount == 1 ? 'pending request' : 'pending requests'}">pending requests</span>
+                        </a>
+                    </li>
+
+                    <!-- Onboarding (Platform Admin only) -->
+                    <li class="nav-item" sec:authorize="hasRole('PLATFORM_ADMIN')">
+                        <a class="nav-link"
+                           th:href="@{/admin/onboarding}"
+                           th:classappend="${activePage == 'onboarding'} ? 'active' : ''"
+                           th:attr="aria-current=${activePage == 'onboarding'} ? 'page' : null">
+                            <i class="fas fa-user-plus" aria-hidden="true"></i> Onboarding
+                        </a>
+                    </li>
+
+                    <!-- My Tools (authenticated users) -->
+                    <li class="nav-item" sec:authorize="isAuthenticated()">
+                        <a class="nav-link"
+                           th:href="@{/connectors}"
+                           th:classappend="${activePage == 'connectors'} ? 'active' : ''"
+                           th:attr="aria-current=${activePage == 'connectors'} ? 'page' : null">
+                            <i class="fas fa-plug" aria-hidden="true"></i> My Tools
+                        </a>
+                    </li>
+
+                    <!-- Pluggable module nav items (e.g. SPIP) — see NavContribution.
+                         Already filtered to the current user's role and sorted by
+                         GlobalModelAttributesAdvice#addNavContributions; nothing to gate
+                         here, and the item simply isn't in the list when its module (or
+                         the whole list, for an anonymous request) is absent. -->
+                    <li class="nav-item" th:each="navItem : ${navContributions}">
+                        <a class="nav-link"
+                           th:href="@{${navItem.href()}}"
+                           th:classappend="${activePage == navItem.activePageKey()} ? 'active' : ''"
+                           th:attr="aria-current=${activePage == navItem.activePageKey()} ? 'page' : null">
+                            <i th:class="${navItem.iconClass()}" aria-hidden="true"></i>
+                            <span th:text="${navItem.label()}">Module</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Right side nav items -->
+                <ul class="navbar-nav align-items-center">
+                    <!-- Notification Bell (authenticated users) -->
+                    <li class="nav-item dropdown me-2" id="notification-bell" sec:authorize="isAuthenticated()">
+                        <a class="nav-link position-relative"
+                           href="#"
+                           role="button"
+                           data-bs-toggle="dropdown"
+                           aria-expanded="false"
+                           aria-label="Notifications">
+                            <i class="fas fa-bell" aria-hidden="true"></i>
+                            <span id="notification-badge"
+                                  class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none"
+                                  style="font-size: 0.65rem;">
+                                0
+                            </span>
+                        </a>
+                        <ul id="notification-dropdown" class="dropdown-menu dropdown-menu-end notification-dropdown" style="min-width: 320px; max-height: 400px; overflow-y: auto;">
+                            <li class="dropdown-item text-muted text-center py-3">
+                                <i class="fas fa-spinner fa-spin me-2"></i>Loading notifications...
+                            </li>
+                        </ul>
+                    </li>
+
+                    <!-- User dropdown (authenticated) -->
+                    <li class="nav-item dropdown" sec:authorize="isAuthenticated()">
+                        <a class="nav-link dropdown-toggle"
+                           href="#"
+                           id="userDropdown"
+                           role="button"
+                           data-bs-toggle="dropdown"
+                           aria-expanded="false">
+                            <i class="fas fa-user" aria-hidden="true"></i>
+                            <span sec:authentication="principal.fullName">User</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li>
+                                <a class="dropdown-item"
+                                   th:href="@{/profile}"
+                                   th:classappend="${activePage == 'profile'} ? 'active' : ''">
+                                    <i class="fas fa-user-cog" aria-hidden="true"></i> Profile
+                                </a>
+                            </li>
+                            <li sec:authorize="hasRole('PLATFORM_ADMIN')">
+                                <a class="dropdown-item"
+                                   th:href="@{/admin/settings}"
+                                   th:classappend="${activePage == 'settings'} ? 'active' : ''">
+                                    <i class="fas fa-cog" aria-hidden="true"></i> Settings
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form th:action="@{/logout}" method="post" class="d-inline">
+                                    <button type="submit" class="dropdown-item">
+                                        <i class="fas fa-sign-out-alt" aria-hidden="true"></i> Logout
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <!-- Login link (not authenticated) -->
+                    <li class="nav-item" sec:authorize="!isAuthenticated()">
+                        <a class="nav-link" th:href="@{/login}">
+                            <i class="fas fa-sign-in-alt" aria-hidden="true"></i> Login
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <!-- Password Change Warning Banner (included automatically with navbar) -->
+    <div th:if="${#authorization.expression('isAuthenticated()')} and ${#authentication.principal.mustChangePassword}"
+         class="alert alert-warning mb-0 rounded-0" role="alert">
+        <div class="container d-flex align-items-center justify-content-between">
+            <div>
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Temporary Password</strong> - You are using a temporary password. Please change it to secure your account.
+            </div>
+            <a th:href="@{/profile/change-password}" class="btn btn-warning btn-sm ms-3">
+                <i class="fas fa-key me-1"></i> Change Password Now
+            </a>
+        </div>
+    </div>
+    </th:block>
+
+    <!-- Toast Container for Real-time Notifications -->
+    <!-- Place this at the end of body in templates that need toast notifications -->
+    <div th:fragment="toast-container" id="toast-container" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100;"></div>
+</body>
+</html>

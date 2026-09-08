@@ -1,0 +1,14 @@
+# DATA4CIRC branding overlay for the local Docker stack (opt-in).
+#
+# Mounts the in-repo branding bundle at the same relative location inside
+# the container: the portal's cwd is /app, so ./branding/data4circ resolves
+# to /app/branding/data4circ both in SPRING_CONFIG_IMPORT and in the
+# bundle's static-locations. See branding/data4circ/README.md.
+#
+# Run: docker compose -f docker-compose.local.yml -f docker-compose.data4circ.yml up -d
+services:
+  app:
+    environment:
+      SPRING_CONFIG_IMPORT: optional:file:./branding/data4circ/branding.yml
+    volumes:
+      - ./branding/data4circ:/app/branding/data4circ:ro

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:with="brandName=${branding != null ? branding.brandName : 'Portal'}"
+           th:text="(${title} ?: 'Server Error') + ' - ' + ${brandName}">Server Error</title>
+
+    <!-- Bootstrap CSS -->
+    <link th:href="@{/webjars/bootstrap/5.3.0/css/bootstrap.min.css}" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link th:href="@{/css/custom.css}" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body class="bg-light">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card mt-5 shadow">
+                    <div class="card-header bg-danger text-white text-center">
+                        <h1 class="display-1 mb-0">
+                            <i class="fas fa-server"></i>
+                        </h1>
+                        <h2 class="mb-0">500 - Server Error</h2>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="mb-4">
+                            <p class="lead" th:text="${message} ?: 'An internal server error occurred. Please try again later.'">
+                                An internal server error occurred. Please try again later.
+                            </p>
+                            <p class="text-muted">
+                                We apologize for the inconvenience. Our team has been notified of this issue.
+                            </p>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                            <a th:href="@{/}" class="btn btn-primary">
+                                <i class="fas fa-home"></i> Back to Home
+                            </a>
+                            <button onclick="location.reload()" class="btn btn-outline-primary">
+                                <i class="fas fa-redo"></i> Try Again
+                            </button>
+                            <button onclick="history.back()" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Go Back
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-footer text-center bg-light">
+                        <small class="text-muted">
+                            If this problem persists, please contact our support team with details about what you were trying to do.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script th:src="@{/webjars/bootstrap/5.3.0/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

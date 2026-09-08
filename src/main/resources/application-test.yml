@@ -1,0 +1,60 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:d4c_portal_test
+    driverClassName: org.h2.Driver
+    username: sa
+    password:
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    open-in-view: false
+  
+  sql:
+    init:
+      mode: never
+
+# Email sending is disabled in tests; without this the mail health indicator
+# fails on the mail configuration inherited from the base application.yml.
+management:
+  health:
+    mail:
+      enabled: false
+
+app:
+  # Integration tests rely on the seeded demo data (e.g. the 'admin' user)
+  demo-data:
+    enabled: true
+  encryption:
+    key: ${ENCRYPTION_KEY:Test_Encryption_Key_D4C_Portal32}
+  email:
+    enabled: false
+    onboarding:
+      # Tests assert on inline credentials / legacy behaviour.
+      secure-link: false
+  spip:
+    base-url: https://localhost:8002
+    customer-tag: test
+    admin:
+      username: test_admin
+      password: test_password
+    ssl:
+      disable-verification: true
+  # Matches the dev Keycloak container (docker-compose.keycloak.yml) so the tagged
+  # E2E suite (KeycloakIntegrationTest) runs against it without extra configuration.
+  keycloak:
+    base-url: http://localhost:8081
+    realm: data4circ
+    client-id: portal-admin
+    client-secret: dev-portal-admin-secret
+
+logging:
+  level:
+    com.data4circ.portal: WARN
+    org.springframework.security: WARN

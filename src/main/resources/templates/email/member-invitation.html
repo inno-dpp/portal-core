@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #0d6efd;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            background-color: #f8f9fa;
+            padding: 30px;
+            border-radius: 0 0 5px 5px;
+        }
+        .button {
+            display: inline-block;
+            background-color: #084298;
+            color: #ffffff;
+            padding: 14px 34px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+            font-size: 1.1em;
+            letter-spacing: 0.2px;
+            border: 1px solid #06316f;
+        }
+        .credentials-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .info-box {
+            background-color: #cfe2ff;
+            border-left: 4px solid #0d6efd;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        .warning {
+            color: #dc3545;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Welcome to the Team!</h1>
+        <p>You've Been Added to an Organization</p>
+    </div>
+
+    <div class="content">
+        <h2>Welcome to [[${branding.brandName}]]</h2>
+
+        <p>Dear <span th:text="${memberName}">Member Name</span>,</p>
+
+        <p>You have been added as a member to <strong th:text="${organizationName}">Organization Name</strong>
+        on [[${branding.brandName}]].</p>
+
+        <div class="info-box">
+            <p><strong>Your portal account has been created!</strong></p>
+            <p>You can now access your organization's data and collaborate with other members.</p>
+        </div>
+
+        <div class="credentials-box">
+            <h3>Portal Login Credentials</h3>
+            <p><strong>Username:</strong> <span th:text="${username}">username</span></p>
+            <p><strong>Temporary Password:</strong> <span th:text="${temporaryPassword}">password</span></p>
+            <p class="warning">⚠️ IMPORTANT: Please change this password immediately after your first login.</p>
+        </div>
+
+        <div class="info-box">
+            <h3>About Access</h3>
+            <p><strong>Portal Access:</strong> You can log in to the portal using the credentials above.</p>
+            <p><strong>SPIP & CKAN:</strong> Your organization shares the same SPIP and CKAN credentials. These are managed by your organization administrator and are not sent in this email for security reasons.</p>
+        </div>
+
+        <div style="text-align: center;">
+            <a th:href="${loginUrl}" class="button" style="color: #ffffff;">Login to Portal</a>
+        </div>
+
+        <p><strong>What You Can Do:</strong></p>
+        <ul>
+            <li>View and manage your organization's profile</li>
+            <li>Access organization data and connectors</li>
+            <li>Collaborate with other organization members</li>
+            <li>Update your personal profile and preferences</li>
+        </ul>
+
+        <p>If you have any questions, please contact your organization administrator.</p>
+
+        <p>Best regards,<br>
+        <span th:text="${branding.teamName}">The Portal Team</span></p>
+    </div>
+
+    <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px; border-radius: 5px;">
+        <p style="margin: 0; font-size: 0.9em; color: #856404;">
+            <strong>⚠️ Development Notice:</strong> This platform is currently in development and testing phase.
+            It is not yet production-ready. Features and data may be subject to change.
+            Please do not use for critical or sensitive operations at this time.
+        </p>
+    </div>
+
+    <div class="footer">
+        <p>This email contains sensitive information. Please keep your credentials secure.</p>
+        <p>&copy; <span th:text="${year}">2025</span> <span th:text="${branding.copyrightHolder}">Portal</span>. All rights reserved.</p>
+    </div>
+</body>
+</html>

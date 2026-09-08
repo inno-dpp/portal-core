@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #198754;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            background-color: #f8f9fa;
+            padding: 30px;
+            border-radius: 0 0 5px 5px;
+        }
+        .button {
+            display: inline-block;
+            background-color: #084298;
+            color: #ffffff;
+            padding: 14px 34px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+            font-size: 1.1em;
+            letter-spacing: 0.2px;
+            border: 1px solid #06316f;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        .success-box {
+            background-color: #d1e7dd;
+            border-left: 4px solid #198754;
+            padding: 15px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 th:text="${branding.brandName}">Portal</h1>
+        <p th:text="${branding.brandTagline}">Circular Economy Data Platform</p>
+    </div>
+
+    <div class="content">
+        <h2>Collaboration Request Approved</h2>
+
+        <p>Dear <span th:text="${requesterOrgName}">Organization Name</span> team,</p>
+
+        <p><strong><span th:text="${targetOrgName}">Partner</span></strong> has approved your collaboration
+        request. Your organisations are now connected in the [[${branding.brandName}]].</p>
+
+        <p>This collaboration may enable secure data-sharing workflows between both organisations,
+        according to [[${branding.brandName}]] access policies.</p>
+
+        <div class="success-box">
+            <strong>Partner organisation:</strong> <span th:text="${targetOrgName}">Partner</span><br>
+            <strong>Status:</strong> Approved &#10003;<br>
+            <strong>Approved on:</strong> <span th:text="${approvedDate}">13 May 2026</span><br>
+            <strong>Next step:</strong> View the partner profile to access collaboration details.
+            <span th:if="${reviewerNotes != null}">
+                <br><strong>Note from <span th:text="${targetOrgName}">Partner</span>:</strong> <span th:text="${reviewerNotes}">Notes</span>
+            </span>
+        </div>
+
+        <p><strong>What you can do next:</strong></p>
+        <ol>
+            <li>View the partner organisation profile and your active collaboration status.</li>
+            <li>Check the collaboration details and any permissions that were enabled.</li>
+            <li>Start sharing documents or datasets, if enabled for your role.</li>
+            <li>Contact your organisation admin if you need access to specific tools.</li>
+        </ol>
+
+        <div style="text-align: center;">
+            <a th:href="${partnerProfileUrl}" class="button" style="color: #ffffff;">View Partner Profile and Collaboration Status</a>
+        </div>
+
+        <p>Best regards,<br>
+        <span th:text="${branding.teamName}">The Portal Team</span></p>
+    </div>
+
+    <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px; border-radius: 5px;">
+        <p style="margin: 0; font-size: 0.9em; color: #856404;">
+            <strong>&#9888; Development Notice:</strong> This platform is currently in development and testing phase.
+            It is not yet production-ready. Features and data may be subject to change.
+        </p>
+    </div>
+
+    <div class="footer">
+        <p>This is an automated message from [[${branding.brandName}]]. Please do not reply to this email.</p>
+        <p>&copy; <span th:text="${year}">2025</span> <span th:text="${branding.copyrightHolder}">Portal</span>. All rights reserved.</p>
+    </div>
+</body>
+</html>

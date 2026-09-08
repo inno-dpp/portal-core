@@ -1,0 +1,287 @@
+spring:
+  application:
+    name: d4c-portal
+
+  thymeleaf:
+    cache: false
+
+  cache:
+    type: caffeine
+    cache-names:
+      - datasetCount
+    caffeine:
+      spec: maximumSize=100,expireAfterWrite=1m
+
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+server:
+  port: 8080
+
+logging:
+  level:
+    com.data4circ.portal: INFO
+    org.springframework.security: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+  health:
+    mail:
+      # When email sending is disabled, an unreachable SMTP server must not
+      # take the aggregate health (and container healthchecks) down with it.
+      enabled: ${app.email.enabled}
+
+app:
+  # Sample organizations/users/connectors for development; see DataInitializer
+  demo-data:
+    enabled: ${DEMO_DATA_ENABLED:false}
+  # First-run platform administrator; required for fresh production deployments
+  bootstrap:
+    admin:
+      username: ${ADMIN_USERNAME:}
+      password: ${ADMIN_PASSWORD:}
+      email: ${ADMIN_EMAIL:}
+  api:
+    key: ${API_KEY:dev-api-key-change-in-production}
+  version: @project.version@
+  connector:
+    heartbeat:
+      timeout-seconds: 180       # 3 minutes
+      check-interval: 30000      # 30 seconds
+  email:
+    enabled: ${EMAIL_ENABLED:true}
+    from: ${APP_EMAIL_FROM:noreply@localhost}
+    support: ${APP_EMAIL_SUPPORT:noreply@localhost}
+    onboarding-reviewers: ${ONBOARDING_REVIEWERS:}
+    onboarding:
+      # true  = secure approval email (no credentials in the body; one-time set-password link)
+      # false = legacy behaviour, all credentials rendered inline (dev/test only)
+      secure-link: ${ONBOARDING_SECURE_EMAIL:true}
+  base-url: ${APP_BASE_URL:http://localhost:8080}
+  encryption:
+    # No default on purpose: startup fails when unset (EncryptionConfig).
+    key: ${ENCRYPTION_KEY:}
+  modules:
+    # Structural on/off switch for the SPIP integration itself (controller, API
+    # client, sync/onboarding services, facade): when false, none of those beans
+    # exist in the Spring context at all. Distinct from
+    # app.onboarding.tools.spip.enabled below, which only gates the onboarding
+    # wizard step and assumes the module is present.
+    spip:
+      enabled: ${SPIP_MODULE_ENABLED:true}
+  spip:
+    
+    base-url: ${SPIP_BASE_URL:https://localhost:8002}
+    customer-tag: ${SPIP_CUSTOMER_TAG:}
+    admin:
+      
+      username: ${SPIP_ADMIN_USERNAME:}
+      password: ${SPIP_ADMIN_PASSWORD:}
+    ssl:
+      disable-verification: ${SPIP_DISABLE_SSL_VERIFICATION:true}
+    endpoints:
+      login: /user/login
+      create-user: /user/add
+      assign-role: /pap/role/assign
+      add-attribute: /user/attribute/add
+      get-attribute: /user/attribute/get
+      delete-attribute: /user/attribute/delete
+      create-policy: /policy_builder/add
+      get-policy: /policy_builder/get
+      delete-policy: /policy_builder/delete
+    resources:
+      encrypt-attributes: encrypt_attribute_list
+      decrypt-attributes: decrypt_attribute_list
+    
+    default-role: ${SPIP_DEFAULT_ROLE:data_owner}
+  ckan:
+    
+    base-url: ${CKAN_BASE_URL:http://localhost:5000}
+    # Browser-facing CKAN address used for outgoing links (e.g. dashboard category "Explore
+    # Data" buttons). Only needed when it differs from base-url — e.g. base-url uses a
+    # Docker-internal hostname. Defaults to base-url when unset.
+    public-url: ${CKAN_PUBLIC_URL:${CKAN_BASE_URL:http://localhost:5000}}
+    api-key: ${CKAN_API_KEY:dummy-api-key}
+    jwt-token: ${CKAN_JWT_TOKEN:}
+
+    organization: ${CKAN_ORGANIZATION:}
+    endpoints:
+      package-create: /api/3/action/package_create
+      package-update: /api/3/action/package_update
+      package-show: /api/3/action/package_show
+      package-list: /api/3/action/package_list
+      package-search: /api/3/action/package_search
+      dataset-purge: /api/3/action/dataset_purge
+      package-patch: /api/3/action/package_patch
+      organization-create: /api/3/action/organization_create
+      organization-show: /api/3/action/organization_show
+      user-create: /api/3/action/user_create
+      organization-patch: /api/3/action/organization_patch
+      organization-member-create: /api/3/action/organization_member_create
+      group-member-create: /api/3/action/group_member_create
+      group-list: /api/3/action/group_list
+      group-create: /api/3/action/group_create
+      group-patch: /api/3/action/group_patch
+      group-show: /api/3/action/group_show
+      group-delete: /api/3/action/group_delete
+      api-token-create: /api/3/action/api_token_create
+  keycloak:
+    # Default Keycloak instance used to provision organization groups and first users
+    # during onboarding. The admin can override these per organization on the
+    # onboarding sync form (multi-instance support).
+    base-url: ${KEYCLOAK_BASE_URL:http://localhost:8081}
+    realm: ${KEYCLOAK_REALM:data4circ}
+    client-id: ${KEYCLOAK_ADMIN_CLIENT_ID:portal-admin}
+    client-secret: ${KEYCLOAK_ADMIN_CLIENT_SECRET:}
+    # When true, the first user's portal password is mirrored into their Keycloak
+    # account at first-login activation (best-effort, default-instance only).
+    mirror-portal-password: ${KEYCLOAK_MIRROR_PORTAL_PASSWORD:false}
+    ssl:
+      disable-verification: ${KEYCLOAK_DISABLE_SSL_VERIFICATION:false}
+  cors:
+    additional-origins: ${CORS_ADDITIONAL_ORIGINS:}
+  onboarding:
+    # External tools provisioned during organization onboarding.
+    # enabled=false hides the tool and skips it entirely; required=false lets
+    # admins approve a request without synchronizing that tool. The optional
+    # connector template materializes the tool in the organization's "My Tools"
+    # section once the request is approved.
+    # NOTE: enabled=false makes required irrelevant for that tool (OnboardingToolRegistry.isRequired
+    # short-circuits on enabled) — don't set both false expecting a stronger disable than enabled=false
+    # alone. CKAN's sync additionally depends on SPIP only while spip.required=true (CkanOnboardingToolProvisioner);
+    # once SPIP is optional or disabled, CKAN provisions its own username/password instead of reusing SPIP's.
+    tools:
+      spip:
+        # Defaults cascade from the module switch (app.modules.spip.enabled, i.e. the
+        # SPIP_MODULE_ENABLED env var) so a disabled module doesn't leave the "spip"
+        # onboarding tool looking like a config-only tool (no provisioner bean, but
+        # still enabled) — OnboardingToolConnectorService#materializeConfigOnlyConnectors
+        # and OnboardingController#buildToolViews both treat "provisioner absent +
+        # enabled" that way, which is right for truly config-only tools (edc,
+        # spip-agent) but would otherwise create/show a phantom, never-synchronized SPIP
+        # connector for every approved org once the module (not just this onboarding
+        # step) is off. The nested placeholder resolves the *property*
+        # app.modules.spip.enabled (already itself resolved from SPIP_MODULE_ENABLED
+        # above), not that env var directly, so it also follows an override applied
+        # straight to the property (e.g. a test's @SpringBootTest(properties=...)). An
+        # explicit ONBOARDING_TOOL_SPIP_ENABLED / ..._CONNECTOR_ENABLED still overrides
+        # both.
+        enabled: ${ONBOARDING_TOOL_SPIP_ENABLED:${app.modules.spip.enabled:true}}
+        required: ${ONBOARDING_TOOL_SPIP_REQUIRED:true}
+        connector:
+          enabled: ${ONBOARDING_TOOL_SPIP_CONNECTOR_ENABLED:${app.modules.spip.enabled:true}}
+          name: SPIP Platform
+          type: SPIP_PLATFORM
+          description: Secure Privacy-Preserving Infrastructure Platform for ABE encryption services.
+          endpoint: ${SPIP_BASE_URL:https://localhost:8002}
+      ckan:
+        enabled: ${ONBOARDING_TOOL_CKAN_ENABLED:true}
+        required: ${ONBOARDING_TOOL_CKAN_REQUIRED:true}
+        connector:
+          enabled: ${ONBOARDING_TOOL_CKAN_CONNECTOR_ENABLED:true}
+          name: CKAN Metadata Platform
+          type: FEDERATED_CATALOG_CKAN
+          description: Metadata platform for publishing and sharing datasets.
+          endpoint: ${CKAN_BASE_URL:http://localhost:5000}
+          health-endpoint: ${CKAN_BASE_URL:http://localhost:5000}/api/3/action/status_show
+      # Optional while deployments without a Keycloak instance are still common;
+      # flip required to true once every environment runs one.
+      keycloak:
+        enabled: ${ONBOARDING_TOOL_KEYCLOAK_ENABLED:true}
+        required: ${ONBOARDING_TOOL_KEYCLOAK_REQUIRED:false}
+        connector:
+          enabled: ${ONBOARDING_TOOL_KEYCLOAK_CONNECTOR_ENABLED:true}
+          name: Keycloak Identity Provider
+          type: IDENTITY_PROVIDER
+          description: Keycloak instance managing the organization's user identities.
+          endpoint: ${KEYCLOAK_BASE_URL:http://localhost:8081}
+      # Config-only tool: no synchronization step and no provisioner — the connector
+      # is created for every approved organization and configured afterwards.
+      # The configuration is a per-organization skeleton: an ORG_ADMIN fills in the
+      # real values (participant id, keys, endpoints) after onboarding via My Tools.
+      edc:
+        enabled: ${ONBOARDING_TOOL_EDC_ENABLED:true}
+        connector:
+          enabled: ${ONBOARDING_TOOL_EDC_CONNECTOR_ENABLED:true}
+          name: EDC Connector
+          type: EDC_CONNECTOR
+          description: Eclipse Dataspace Connector for sovereign data exchange. Configure after onboarding.
+          endpoint: ${EDC_BASE_URL:http://localhost:19193}
+          status: OFFLINE
+          configuration: |
+            {
+              "edcVersion": "v3",
+              "managementUrl": "http://localhost:10193/management",
+              "managementApiKey": "change-me",
+              "participantId": "change-me",
+              "dspEndpoint": "http://localhost:10194/protocol",
+              "publicEndpoint": "http://localhost:10291/public"
+            }
+      # Config-only tool: the local SPIP agent handling encrypt/decrypt requests.
+      spip-agent:
+        enabled: ${ONBOARDING_TOOL_SPIP_AGENT_ENABLED:true}
+        connector:
+          enabled: ${ONBOARDING_TOOL_SPIP_AGENT_CONNECTOR_ENABLED:true}
+          name: SPIP Agent
+          type: SPIP_AGENT
+          description: Local SPIP agent for attribute-based encryption and decryption. Configure after onboarding.
+          endpoint: ${SPIP_AGENT_BASE_URL:http://host.docker.internal:8000}
+          status: OFFLINE
+          configuration: |
+            {
+              "baseUrl": "http://host.docker.internal:8000",
+              "encryptSyncPath": "/encrypt/sync",
+              "decryptSyncPath": "/decrypt/sync",
+              "schemaId": "CP-TKN",
+              "timeoutMs": "5000"
+            }
+  # Dashboard use-case category cards are managed by platform admins at
+  # /admin/categories (portal DB, synced to CKAN) — see features/category/.
+  # The dashboard section is hidden while there are no active categories.
+  branding:
+    
+    brand-name: ${BRANDING_NAME:Portal for Circularity}
+    brand-tagline: ${BRANDING_TAGLINE:Circular Economy Data Platform}
+    brand-subtagline: ${BRANDING_SUBTAGLINE:Integrate data catalog functionality with SPIP capabilities for circular economy data management.}
+    support-email: ${BRANDING_SUPPORT_EMAIL:}
+    team-name: ${BRANDING_TEAM_NAME:}
+    copyright-holder: ${BRANDING_COPYRIGHT_HOLDER:}
+    colors:
+      
+      success: ${BRANDING_COLOR_SUCCESS:#2E7D32}
+      warning: ${BRANDING_COLOR_WARNING:#ED6C02}
+      danger: ${BRANDING_COLOR_DANGER:#C62828}
+      text: ${BRANDING_COLOR_TEXT:#1F2933}
+      light-text: ${BRANDING_COLOR_LIGHT_TEXT:#6D7485}
+    typography:
+      font-family: ${BRANDING_FONT_FAMILY:'Open Sans', Arial, sans-serif}
+      heading-font-family: ${BRANDING_HEADING_FONT_FAMILY:'Montserrat', 'Open Sans', Arial, sans-serif}
+    assets:
+      logo: ${BRANDING_LOGO:/assets/branding/logo.png}
+      logo-small: ${BRANDING_LOGO_SMALL:/assets/branding/logo-small.png}
+      favicon: ${BRANDING_FAVICON:/assets/branding/favicon.png}
+      login-background: ${BRANDING_LOGIN_BACKGROUND:}
+    navbar:
+      
+      text-color: ${BRANDING_NAVBAR_TEXT_COLOR:#FFFFFF}

@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/head :: common('Onboarding Request - ' + ${request.companyName})}"></head>
+<body>
+    <!-- Navigation -->
+    <nav th:replace="~{fragments/navigation :: navbar('onboarding')}"></nav>
+
+    <!-- Main Content -->
+    <main class="container-fluid mt-4">
+        <!-- Page Header -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a th:href="@{/admin/onboarding}">Onboarding Requests</a></li>
+                        <li class="breadcrumb-item active" th:text="${request.companyName}">Company Name</li>
+                    </ol>
+                </nav>
+                <h1><i class="fas fa-user-plus text-primary"></i> Onboarding Request</h1>
+                <h3 th:text="${request.companyName}" class="text-muted">Company Name</h3>
+            </div>
+            <div class="col-md-4 text-end">
+                <span th:switch="${request.status.name()}">
+                    <span th:case="'PENDING'" class="badge bg-warning fs-6">Pending Review</span>
+                    <span th:case="'APPROVED'" class="badge bg-success fs-6">Approved</span>
+                    <span th:case="'REJECTED'" class="badge bg-danger fs-6">Rejected</span>
+                    <span th:case="'ORGANIZATION_CREATED'" class="badge bg-success fs-6">Organization Created</span>
+                    <span th:case="*" class="badge bg-secondary fs-6" th:text="${request.status.displayName}">Unknown</span>
+                </span>
+            </div>
+        </div>
+
+        <!-- Flash Messages -->
+        <div th:if="${message}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> <span th:text="${message}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i> <span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div class="row">
+            <!-- Request Details -->
+            <div class="col-lg-8">
+                <!-- Organization Information -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-building"></i> Organization Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <strong>Company Name:</strong><br>
+                                <span th:text="${request.companyName}">Company Name</span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <strong>Organization Type:</strong><br>
+                                <span th:text="${request.companyType}" class="badge bg-info">Type</span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <strong>Industry Sector:</strong><br>
+                                <span th:text="${request.industry}">Industry</span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <strong>Company Size:</strong><br>
+                                <span th:text="${request.companySize?.displayName ?: 'Not specified'}">Size</span>
+                            </div>
+                            <div class="col-12 mb-3" th:if="${request.naceCodes != null and !request.naceCodes.isEmpty()}">
+                                <strong>NACE Code(s):</strong><br>
+                                <span th:each="code : ${request.naceCodes.split(',')}" class="badge bg-primary me-1 mb-1" th:text="${code}">Code</span>
+                            </div>
+                            <div class="col-12 mb-3" th:if="${request.website}">
+                                <strong>Website:</strong><br>
+                                <a th:href="${request.website}" target="_blank" th:text="${request.website}">Website URL</a>
+                            </div>
+                            <div class="col-md-6 mb-3" th:if="${request.country}">
+                                <strong>Country:</strong><br>
+                                <span th:text="${request.country}">Country</span>
+                            </div>
+                            <div class="col-12" th:if="${request.address}">
+                                <strong>Address:</strong><br>
+                                <span th:text="${request.address}">Address</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Information -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-user"></i> Contact Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <strong>Contact Name:</strong><br>
+                                <span th:text="${request.contactName}">Contact Name</span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <strong>Job Title:</strong><br>
+                                <span th:text="${request.contactTitle}">Job Title</span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <strong>Email:</strong><br>
+                                <a th:href="|mailto:${request.email}|" th:text="${request.email}">email@example.com</a>
+                            </div>
+                            <div class="col-md-6 mb-3" th:if="${request.phone}">
+                                <strong>Phone:</strong><br>
+                                <span th:if="${request.phonePrefix}" th:text="${request.phonePrefix + ' '}"></span><span th:text="${request.phone}">Phone Number</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dataspace Participation Details -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-handshake"></i> Dataspace Participation</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-4">
+                            <strong>Participation Goals:</strong>
+                            <p th:text="${request.participationGoals}" class="mt-2">Participation goals text</p>
+                        </div>
+
+                        <div class="mb-4" th:if="${request.dataTypes}">
+                            <strong>Data Types to Share:</strong>
+                            <p th:text="${request.dataTypes}" class="mt-2">Data types text</p>
+                        </div>
+
+                        <div class="mb-4" th:if="${request.dataNeeds}">
+                            <strong>Data Access Needs:</strong>
+                            <p th:text="${request.dataNeeds}" class="mt-2">Data needs text</p>
+                        </div>
+
+                        <div class="mb-3" th:if="${request.currentSystems}">
+                            <strong>Current Systems & Infrastructure:</strong>
+                            <p th:text="${request.currentSystems}" class="mt-2">Current systems text</p>
+                        </div>
+
+                        <div class="mb-3">
+                            <strong>GDPR Consent:</strong>
+                            <span th:if="${request.gdprConsent}" class="badge bg-success">
+                                <i class="fas fa-check"></i> Granted
+                            </span>
+                            <span th:unless="${request.gdprConsent}" class="badge bg-danger">
+                                <i class="fas fa-times"></i> Not Granted
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Panel -->
+            <div class="col-lg-4">
+                <!-- Status & Actions Card -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-cogs"></i> Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Pending Actions -->
+                        <div th:if="${request.status.name() == 'PENDING'}">
+                            <!-- One synchronization card per enabled onboarding tool
+                                 (rendered in dependency order from OnboardingToolRegistry) -->
+                            <div class="mb-3">
+                                <th:block th:each="tool : ${onboardingTools}">
+                                    <!-- Config-only tool: informational card, connector is created at approval -->
+                                    <div th:if="${tool.configOnly}" class="alert alert-info" role="alert">
+                                        <strong><i th:class="${tool.iconClass}"></i> <span th:text="${tool.displayName}">Tool</span>:</strong>
+                                        <span><i class="fas fa-magic"></i> Created automatically upon approval</span>
+                                        <br>
+                                        <small>
+                                            <i class="fas fa-info-circle"></i>
+                                            No synchronization required. This tool will appear in the organization's
+                                            "My Tools" section and can be configured afterwards.
+                                        </small>
+                                    </div>
+
+                                    <!-- Optional tools (app.onboarding.tools.<key>.required=false) render neutrally
+                                         when unsynced: approval proceeds without them -->
+                                    <div th:unless="${tool.configOnly}" class="alert"
+                                         th:classappend="${tool.synced} ? 'alert-success' : (${tool.required} ? 'alert-warning' : 'alert-secondary')"
+                                         role="alert">
+                                        <strong><i th:class="${tool.iconClass}"></i> <span th:text="${tool.displayName}">Tool</span> Status:</strong>
+                                        <span th:if="${tool.synced}">
+                                            <i class="fas fa-check-circle"></i> Synchronized
+                                        </span>
+                                        <span th:unless="${tool.synced}">
+                                            <i class="fas fa-exclamation-circle"></i> Not Synchronized
+                                        </span>
+                                        <span th:unless="${tool.required}" class="badge bg-secondary ms-1">Optional</span>
+                                        <br th:if="${tool.statusNote}">
+                                        <small th:if="${tool.statusNote}">
+                                            <i class="fas fa-info-circle"></i> <span th:text="${tool.statusNote}">note</span>
+                                        </small>
+                                        <br th:if="${tool.skippedAtApproval}">
+                                        <small th:if="${tool.skippedAtApproval}">
+                                            <i class="fas fa-info-circle"></i>
+                                            Optional: the request can be approved without this synchronization; it will be skipped.
+                                        </small>
+                                    </div>
+
+                                    <!-- Tool synchronization form
+                                         CSRF Protection: Enabled automatically via th:action
+                                         Thymeleaf adds hidden CSRF token when using th:action
+                                         See SecurityConfig.java - CSRF enabled for /admin/** endpoints -->
+                                    <form th:unless="${tool.configOnly}" th:action="@{/admin/onboarding/{id}/synchronize/{key}(id=${request.id},key=${tool.key})}" method="post">
+                                        <div class="mb-3" th:each="field : ${tool.fields}">
+                                            <label th:for="${field.name}" class="form-label">
+                                                <strong th:text="${field.label}">Input</strong>
+                                            </label>
+                                            <input class="form-control"
+                                                   th:type="${field.type}"
+                                                   th:id="${field.name}"
+                                                   th:name="${field.name}"
+                                                   th:value="${field.proposedValue}"
+                                                   th:required="${field.required}"
+                                                   th:readonly="${field.readOnly}"
+                                                   th:attr="pattern=${field.htmlPattern},
+                                                            maxlength=${field.maxLength},
+                                                            minlength=${field.minLength}"
+                                                   th:placeholder="'Enter ' + ${field.label}"
+                                                   th:disabled="${tool.synced or !tool.dependenciesMet}">
+                                            <div class="form-text" th:if="${field.helpText}">
+                                                <small>
+                                                    <i class="fas fa-info-circle"></i>
+                                                    <span th:text="${field.helpText}">help</span>
+                                                </small>
+                                            </div>
+                                        </div>
+                                        <button type="submit"
+                                                class="btn btn-primary w-100 mb-3"
+                                                th:disabled="${tool.synced or !tool.dependenciesMet}"
+                                                th:attr="data-bs-toggle=${!tool.dependenciesMet ? 'tooltip' : null},
+                                                        data-bs-placement=${!tool.dependenciesMet ? 'top' : null},
+                                                        title=${!tool.dependenciesMet ? 'Please synchronize with ' + tool.dependencyNames + ' first' : null}">
+                                            <i class="fas fa-sync"></i> Synchronize with <span th:text="${tool.displayName}">Tool</span>
+                                        </button>
+                                    </form>
+                                    <div th:if="${!tool.dependenciesMet}" class="form-text text-warning mt-1 mb-3">
+                                        <small>
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                            <span th:text="${tool.displayName}">Tool</span> synchronization requires successful
+                                            <span th:text="${tool.dependencyNames}">dependency</span> synchronization first.
+                                        </small>
+                                    </div>
+                                </th:block>
+
+                                <hr>
+
+                                <!-- Approve and Reject Buttons -->
+                                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">
+                                    <i class="fas fa-check"></i> Approve Request
+                                </button>
+                                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                                    <i class="fas fa-times"></i> Reject Request
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Rejected Actions: allow re-opening so the request can be approved later -->
+                        <div th:if="${request.status.name() == 'REJECTED'}">
+                            <div class="alert alert-danger" role="alert">
+                                <strong><i class="fas fa-times-circle"></i> This request was rejected.</strong>
+                            </div>
+                            <form th:action="@{/admin/onboarding/{id}/reopen(id=${request.id})}" method="post"
+                                  onsubmit="return confirm('Re-open this request and set it back to Pending for review?');">
+                                <button type="submit" class="btn btn-warning w-100">
+                                    <i class="fas fa-undo"></i> Re-open Request (set to Pending)
+                                </button>
+                            </form>
+                            <div class="form-text mt-2">
+                                <small>
+                                    <i class="fas fa-info-circle"></i>
+                                    Re-opening returns this request to Pending so it can be re-synchronized and
+                                    approved (or rejected again). Previous rejections are kept in the history below.
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Processed Information -->
+                        <div th:if="${request.processedAt}">
+                            <hr>
+                            <div class="mb-2">
+                                <strong>Processed By:</strong><br>
+                                <span th:text="${request.processedBy ?: 'Unknown'}">Admin User</span>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Processed At:</strong><br>
+                                <span th:text="${#temporals.format(request.processedAt, 'MMM dd, yyyy HH:mm')}">Date Time</span>
+                            </div>
+                            <div th:if="${request.adminNotes}">
+                                <strong>Admin Notes:</strong><br>
+                                <p th:text="${request.adminNotes}" class="text-muted small">Admin notes</p>
+                            </div>
+                        </div>
+
+                        <!-- Link to Organization -->
+                        <div th:if="${request.organization}">
+                            <hr>
+                            <div class="d-grid">
+                                <a th:href="@{/organizations/{id}(id=${request.organization.id})}" class="btn btn-outline-primary">
+                                    <i class="fas fa-building"></i> View Organization
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rejection History Card -->
+                <div class="card mb-4" th:if="${rejections != null and !rejections.isEmpty()}">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-history"></i> Rejection History
+                            <span class="badge bg-danger" th:text="${rejections.size()}">0</span>
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item px-0" th:each="rej : ${rejections}">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <strong><i class="fas fa-user-shield"></i>
+                                        <span th:text="${rej.rejectedBy ?: 'Unknown'}">admin</span></strong>
+                                    <small class="text-muted"
+                                           th:text="${rej.rejectedAt != null ? #temporals.format(rej.rejectedAt, 'MMM dd, yyyy HH:mm') : ''}">Date</small>
+                                </div>
+                                <p class="mb-0 mt-1 text-muted small"
+                                   th:text="${rej.reason ?: 'No reason provided'}">Reason</p>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Request Details Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-info-circle"></i> Request Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <strong>Request ID:</strong><br>
+                            <span th:text="${request.id}">ID</span>
+                        </div>
+                        <div class="mb-2">
+                            <strong>Submitted:</strong><br>
+                            <span th:text="${#temporals.format(request.createdAt, 'MMM dd, yyyy HH:mm')}">Date Time</span>
+                        </div>
+                        <div>
+                            <strong>Last Updated:</strong><br>
+                            <span th:text="${#temporals.format(request.updatedAt, 'MMM dd, yyyy HH:mm')}">Date Time</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Approve Modal -->
+    <div class="modal fade" id="approveModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form th:action="@{/admin/onboarding/{id}/approve(id=${request.id})}" method="post">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Approve Onboarding Request</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to approve this onboarding request? This will:</p>
+                        <ul>
+                            <li>Create a new organization in the system</li>
+                            <li>Create an admin user account for the contact person</li>
+                            <li>Send notification to the applicant</li>
+                        </ul>
+                        <div th:if="${!#lists.isEmpty(skippedOptionalTools)}" class="alert alert-secondary" role="alert">
+                            <i class="fas fa-info-circle"></i>
+                            The following optional tools were not synchronized and will be skipped:
+                            <strong th:text="${#strings.listJoin(skippedOptionalTools, ', ')}">Keycloak</strong>.
+                            The organization will be created without them.
+                        </div>
+                        <div class="mb-3">
+                            <label for="approveNotes" class="form-label">Admin Notes (Optional)</label>
+                            <textarea class="form-control" id="approveNotes" name="adminNotes" rows="3" placeholder="Add any notes about this approval..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-check"></i> Approve Request
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reject Modal -->
+    <div class="modal fade" id="rejectModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form th:action="@{/admin/onboarding/{id}/reject(id=${request.id})}" method="post">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Reject Onboarding Request</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to reject this onboarding request?</p>
+                        <div class="mb-3">
+                            <label for="rejectNotes" class="form-label">Reason for Rejection <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="rejectNotes" name="adminNotes" rows="3" placeholder="Please provide a reason for rejection..." required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-times"></i> Reject Request
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div th:replace="~{fragments/footer :: footer}"></div>
+
+    <!-- Scripts -->
+    <th:block th:replace="~{fragments/scripts :: common}"></th:block>
+
+    <!-- Page-specific scripts -->
+    <script>
+        // Initialize tooltips
+        document.addEventListener('DOMContentLoaded', function() {
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+    </script>
+</body>
+</html>

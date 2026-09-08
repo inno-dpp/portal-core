@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/head :: common('Organizations')}"></head>
+<body>
+    <!-- Navigation -->
+    <nav th:replace="~{fragments/navigation :: navbar('organizations')}"></nav>
+
+    <!-- Main Content -->
+    <main class="container-fluid mt-4">
+        <!-- Flash Messages -->
+        <div th:if="${message}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> <span th:text="${message}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i> <span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <!-- Page Header -->
+        <div class="row mb-4"
+             th:with="hasActiveFilters=${(search != null and !#strings.isEmpty(search))
+                                          or (certificationStatus != null and !#strings.isEmpty(certificationStatus))
+                                          or (organizationType != null and !#strings.isEmpty(organizationType))
+                                          or (industrySector != null and !#strings.isEmpty(industrySector))
+                                          or (country != null and !#strings.isEmpty(country))
+                                          or (naceCode != null and !#strings.isEmpty(naceCode))},
+                      resultNoun=${(organizationsPage != null and organizationsPage.totalElements == 1)
+                                     ? (hasActiveFilters ? ' result' : ' organization')
+                                     : (hasActiveFilters ? ' results' : ' organizations')}">
+            <div class="col-md-8">
+                <h1><i class="fas fa-building text-primary"></i> Organizations
+                    <span id="resultsCounter" class="badge bg-secondary fs-6 align-middle" th:if="${organizationsPage != null}"
+                          th:text="${(organizationsPage.numberOfElements < organizationsPage.totalElements)
+                                     ? ('Showing ' + organizationsPage.numberOfElements + ' of ' + organizationsPage.totalElements + resultNoun)
+                                     : (organizationsPage.totalElements + resultNoun)}">0 organizations</span>
+                </h1>
+                <p class="text-muted" th:text="'Find organizations in the ' + ${branding.brandName} + ' ecosystem, review their profiles, and identify potential partners for data sharing or collaboration.'">Find organizations, review their profiles, and identify potential partners for collaboration.</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a th:href="@{/organizations/my-organization}" class="btn btn-outline-primary me-2"
+                   sec:authorize="hasAnyRole('ORG_ADMIN', 'ORG_MEMBER', 'SPIP_PRIVILEGED_USER')">
+                    <i class="fas fa-handshake"></i> View My Collaborations
+                </a>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newOrgModal" sec:authorize="hasRole('PLATFORM_ADMIN')">
+                    <i class="fas fa-plus"></i> New Organization
+                </button>
+            </div>
+        </div>
+
+        <!-- Filters: sticky so they stay reachable while progressively loading cards further down -->
+        <div class="card mb-4" style="position: sticky; top: 0.5rem; z-index: 1020;">
+            <div class="card-body">
+                <form class="row g-3 align-items-end" method="get" th:action="@{/organizations}">
+                    <!-- Search Input -->
+                    <div class="col-lg-3 col-md-6">
+                        <label for="search" class="form-label">Search</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control" id="search" name="search"
+                                   placeholder="Search by name or description..."
+                                   th:value="${search}">
+                        </div>
+                    </div>
+                    <div class="col-lg col-md-3">
+                        <label for="certificationStatus" class="form-label">Status</label>
+                        <select class="form-select" id="certificationStatus" name="certificationStatus">
+                            <option th:value="${''}" th:selected="${certificationStatus == null or #strings.isEmpty(certificationStatus)}">All statuses</option>
+                            <option th:each="status : ${certificationStatuses}"
+                                    th:value="${status.name()}"
+                                    th:text="${status.displayName}"
+                                    th:selected="${certificationStatus != null and certificationStatus.equalsIgnoreCase(status.name())}">
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-lg col-md-3">
+                        <label for="organizationType" class="form-label">Type</label>
+                        <select class="form-select" id="organizationType" name="organizationType">
+                            <option th:value="${''}" th:selected="${organizationType == null or #strings.isEmpty(organizationType)}">All types</option>
+                            <option th:each="type : ${organizationTypes}"
+                                    th:value="${type.name()}"
+                                    th:text="${type.displayName}"
+                                    th:selected="${organizationType != null and organizationType.equalsIgnoreCase(type.name())}">
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-lg col-md-3">
+                        <label for="industrySector" class="form-label">Industry</label>
+                        <select class="form-select" id="industrySector" name="industrySector">
+                            <option th:value="${''}" th:selected="${industrySector == null or #strings.isEmpty(industrySector)}">All industries</option>
+                            <option th:each="sector : ${industrySectors}"
+                                    th:value="${sector.name()}"
+                                    th:text="${sector.displayName}"
+                                    th:selected="${industrySector != null and industrySector.equalsIgnoreCase(sector.name())}">
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-lg col-md-3">
+                        <label for="country" class="form-label">Country</label>
+                        <select class="form-select" id="country" name="country">
+                            <option th:value="${''}" th:selected="${country == null or #strings.isEmpty(country)}">All countries</option>
+                            <option th:each="c : ${countries}"
+                                    th:value="${c}"
+                                    th:text="${c}"
+                                    th:selected="${country != null and country.equals(c)}">
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-lg col-md-3" th:if="${naceCodesInUse != null and !naceCodesInUse.isEmpty()}">
+                        <label for="naceCode" class="form-label">
+                            NACE Code
+                            <i class="fas fa-question-circle text-muted" style="cursor: help;"
+                               data-bs-toggle="tooltip" data-bs-placement="top"
+                               title="NACE codes classify an organisation's economic activity, e.g. manufacturing, recycling, or construction."
+                               aria-hidden="true"></i>
+                        </label>
+                        <select class="form-select" id="naceCode" name="naceCode">
+                            <option th:value="${''}" th:selected="${naceCode == null or #strings.isEmpty(naceCode)}">All NACE codes</option>
+                            <option th:each="nc : ${naceCodesInUse}"
+                                    th:value="${nc.code}"
+                                    th:text="${nc.code + ' - ' + nc.description}"
+                                    th:selected="${naceCode != null and naceCode.equals(nc.code)}">
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-lg-auto col-md-6 d-flex justify-content-end gap-2">
+                        <input type="hidden" name="size" th:value="${size}">
+                        <input type="hidden" name="sort" th:value="${sort}">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter"></i> Apply
+                        </button>
+                        <a class="btn btn-outline-secondary" th:href="@{|/organizations?size=${size}&sort=${sort}|}">
+                            <i class="fas fa-times"></i> Clear all filters
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Status legend (collapsible). Sourced from CertificationStatus.getDescription() so the
+             enum is the single source of truth. -->
+        <style>
+            /* Toggle the hint text based on the collapse state. Bootstrap manages aria-expanded
+               automatically on data-bs-toggle="collapse" triggers. */
+            .legend-toggle[aria-expanded="true"] .legend-when-collapsed,
+            .legend-toggle[aria-expanded="false"] .legend-when-expanded {
+                display: none;
+            }
+        </style>
+        <div class="card mb-4">
+            <div class="card-header py-2">
+                <a class="text-decoration-none d-flex align-items-center justify-content-between legend-toggle"
+                   data-bs-toggle="collapse" href="#statusLegend"
+                   role="button" aria-expanded="false" aria-controls="statusLegend">
+                    <span class="fw-semibold">
+                        <i class="fas fa-circle-info"></i> Status legend
+                    </span>
+                    <small class="text-muted">
+                        <span class="legend-when-collapsed">Click to expand</span>
+                        <span class="legend-when-expanded">Click to collapse</span>
+                    </small>
+                </a>
+            </div>
+            <div class="collapse" id="statusLegend">
+                <div class="card-body py-3">
+                    <div class="row g-3">
+                        <div class="col-md-6 col-lg-3" th:each="legendStatus : ${certificationStatuses}">
+                            <div class="d-flex">
+                                <span class="badge me-2 align-self-start"
+                                      th:classappend="${legendStatus.badgeClass}">
+                                    <i th:classappend="${legendStatus.iconClass}"></i>
+                                    <span th:text="${legendStatus.displayName}">Status</span>
+                                </span>
+                            </div>
+                            <small class="text-muted d-block mt-1"
+                                   th:text="${legendStatus.description}">Description</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Organizations Grid. The inner th:block is a reusable fragment: the same markup renders
+             in place on a full page load, and is also returned standalone (no outer .row) by
+             GET /organizations/cards for the "Load more" button, and for the live search-as-you-type
+             below, to refresh into #cardGridRow. Always rendered (even empty) so JS always has a
+             container to write into, regardless of whether the initial load had any results. -->
+        <div class="row" id="cardGridRow">
+            <th:block th:fragment="cardGrid">
+                <div class="col-md-6 col-lg-4 mb-4" th:each="org : ${organizationsPage.content}"
+                     th:with="cardInfo=${cardInfoByOrgId.get(org.id)}">
+                    <div class="card organization-card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0" th:text="${org.name}">Organization Name</h6>
+                            <span class="badge" th:classappend="${org.certificationStatus.badgeClass}"
+                                  th:text="${org.certificationStatus.displayName}"
+                                  data-bs-toggle="tooltip" data-bs-placement="top"
+                                  th:attr="title=${org.certificationStatus.description}"
+                                  style="cursor: help;">Status</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-warning py-2 px-3 mb-3 small"
+                                 th:if="${org.certificationStatus.name() == 'RESTRICTED'}">
+                                <i class="fas fa-info-circle"></i>
+                                Some organization details or datasets are only visible after collaboration approval.
+                            </div>
+
+                            <p class="card-text text-muted" th:text="${org.description}">Organization description</p>
+
+                            <div class="mb-2">
+                                <strong>Type:</strong>
+                                <span th:text="${org.type.displayName}">Type</span>
+                            </div>
+
+                            <div class="mb-2">
+                                <strong>Industry:</strong>
+                                <span th:text="${org.industrySector.displayName}">Industry Sector</span>
+                            </div>
+
+                            <div class="mb-2" th:if="${org.country != null and !org.country.isEmpty()}">
+                                <strong>Country:</strong>
+                                <span th:text="${org.country}">Country</span>
+                            </div>
+
+                            <div class="mb-2" th:if="${cardInfo != null and cardInfo.datasetCount != null}">
+                                <strong>Datasets:</strong>
+                                <span th:text="${cardInfo.datasetCount}">0</span> published
+                            </div>
+
+                            <div class="mb-2" th:if="${cardInfo != null and cardInfo.relationshipLabel != null}">
+                                <strong>Collaboration:</strong>
+                                <span class="badge" th:classappend="${cardInfo.relationshipBadgeClass}"
+                                      th:text="${cardInfo.relationshipLabel}">No collaboration yet</span>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <a th:href="@{/organizations/{id}(id=${org.id})}" class="btn btn-primary btn-sm w-100">
+                                <i class="fas fa-eye" th:if="${cardInfo == null or cardInfo.relationshipLabel == null or cardInfo.relationshipLabel != 'No collaboration yet'}"></i>
+                                <i class="fas fa-handshake" th:if="${cardInfo != null and cardInfo.relationshipLabel == 'No collaboration yet'}"></i>
+                                <span th:text="${cardInfo != null and cardInfo.relationshipLabel == 'No collaboration yet'} ? 'Request Collaboration' : 'View Organization Profile'">View Organization Profile</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </th:block>
+        </div>
+
+        <!-- Empty State: always rendered (with the correct message for whether filters/search are
+             active) so live search-as-you-type can toggle it without a page reload. Initial
+             visibility mirrors the server-rendered result count. -->
+        <div class="row" id="emptyState"
+             th:with="hasActiveFilters=${(search != null and !#strings.isEmpty(search))
+                                          or (certificationStatus != null and !#strings.isEmpty(certificationStatus))
+                                          or (organizationType != null and !#strings.isEmpty(organizationType))
+                                          or (industrySector != null and !#strings.isEmpty(industrySector))
+                                          or (country != null and !#strings.isEmpty(country))
+                                          or (naceCode != null and !#strings.isEmpty(naceCode))}"
+             th:style="${organizationsPage == null or organizationsPage.totalElements == 0} ? '' : 'display:none;'">
+            <div class="col-12">
+                <div class="card text-center">
+                    <div class="card-body py-5">
+                        <i class="fas fa-building fa-4x text-muted mb-3"></i>
+                        <h4 class="text-muted" id="emptyStateTitle" th:text="${hasActiveFilters} ? 'No Matching Organizations' : 'No Organizations Found'">No Organizations Found</h4>
+                        <p class="text-muted mb-4" id="emptyStateText"
+                           th:text="${hasActiveFilters} ? 'No organizations match your current search and filters. Try broadening them.' : 'No approved organizations are currently available in the portal.'">No approved organizations are currently available in the portal.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Load More: progressive loading in place of numbered pagination. Filters stay reachable
+             (sticky, above) instead of requiring a scroll back to the top after loading more cards.
+             Always rendered so its click listener (attached once, below) is never wired up to a
+             stale/missing button after a live search changes the result set. -->
+        <div class="row mb-4" id="loadMoreSection"
+             th:with="remaining=${organizationsPage.totalElements - organizationsPage.numberOfElements},
+                      loadCount=${remaining < size ? remaining : size}"
+             th:style="${organizationsPage != null and organizationsPage.hasNext()} ? '' : 'display:none;'"
+             th:attr="data-next-page=${page + 1}, data-size=${size}">
+            <div class="col-12 d-flex flex-column align-items-center">
+                <button type="button" id="loadMoreBtn" class="btn btn-outline-primary px-4">
+                    <i class="fas fa-chevron-down"></i>
+                    <span id="loadMoreLabel" th:text="'Load ' + ${loadCount} + ' more'">Load more</span>
+                </button>
+                <div id="loadMoreError" class="text-danger small mt-2" style="display:none;"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- New Organization Modal -->
+    <div class="modal fade" id="newOrgModal" tabindex="-1" aria-labelledby="newOrgModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="newOrgModalLabel">
+                        <i class="fas fa-building"></i> Create New Organization
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-4">Choose how you want to create the organization:</p>
+
+                    <!-- Option 1: Create from SPIP User -->
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <i class="fas fa-user-shield text-primary"></i> Create from SPIP User
+                            </h6>
+                            <p class="card-text text-muted small mb-3">
+                                Enter SPIP credentials to automatically populate organization details
+                            </p>
+                            <form id="spipUserForm" th:action="@{/organizations/new-from-spip}" method="get">
+                                <div class="mb-3">
+                                    <label for="spipUsername" class="form-label">SPIP Username</label>
+                                    <input type="text" class="form-control" id="spipUsername" name="spipUsername" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="spipPassword" class="form-label">SPIP Password</label>
+                                    <input type="password" class="form-control" id="spipPassword" name="spipPassword" required>
+                                </div>
+                                <div id="spipErrorMessage" class="alert alert-danger d-none" role="alert">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <div id="spipErrorText"></div>
+                                    <div class="mt-2">
+                                        <small>
+                                            <a href="#" onclick="document.getElementById('spipUserForm').reset(); document.getElementById('spipErrorMessage').classList.add('d-none'); return false;">Try again</a>
+                                            or
+                                            <a th:href="@{/organizations/new}" onclick="document.getElementById('newOrgModal').querySelector('[data-bs-dismiss=modal]').click();">create organization manually</a>
+                                        </small>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100" id="spipSubmitBtn">
+                                    <i class="fas fa-arrow-right"></i> Continue with SPIP User
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Option 2: Create from Scratch -->
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <i class="fas fa-edit text-secondary"></i> Create from Scratch
+                            </h6>
+                            <p class="card-text text-muted small mb-3">
+                                Manually enter all organization details
+                            </p>
+                            <a th:href="@{/organizations/new}" class="btn btn-outline-secondary w-100">
+                                <i class="fas fa-pencil-alt"></i> Create Manually
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div th:replace="~{fragments/footer :: footer}"></div>
+
+    <!-- Scripts -->
+    <th:block th:replace="~{fragments/scripts :: common}"></th:block>
+
+    <!-- Page-specific scripts -->
+    <script>
+        // Filter area: search applies automatically (debounced) so the dropdowns can stay
+        // reserved for "Apply" — typing updates results in place, without ever reloading the
+        // page. (An earlier version resubmitted the whole filter form on a typing pause, which
+        // navigated the browser away mid-keystroke whenever the user paused for a beat — e.g.
+        // right after a space, before starting the next word of a multi-word query like
+        // "Company A..." — silently dropping whatever they typed next.)
+        function initTooltips(root) {
+            root.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
+                if (!bootstrap.Tooltip.getInstance(el)) {
+                    new bootstrap.Tooltip(el);
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initTooltips(document);
+
+            const cardGridRow = document.getElementById('cardGridRow');
+            const resultsCounter = document.getElementById('resultsCounter');
+            const emptyState = document.getElementById('emptyState');
+            const emptyStateTitle = document.getElementById('emptyStateTitle');
+            const emptyStateText = document.getElementById('emptyStateText');
+            const loadMoreSection = document.getElementById('loadMoreSection');
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+            const loadMoreLabel = document.getElementById('loadMoreLabel');
+            const loadMoreError = document.getElementById('loadMoreError');
+
+            function updateResultsCounter(shownCount, totalElements, hasActiveFilters) {
+                if (!resultsCounter) return;
+                const noun = totalElements === 1
+                    ? (hasActiveFilters ? ' result' : ' organization')
+                    : (hasActiveFilters ? ' results' : ' organizations');
+                resultsCounter.textContent = shownCount < totalElements
+                    ? ('Showing ' + shownCount + ' of ' + totalElements + noun)
+                    : (totalElements + noun);
+            }
+
+            // Shows/hides the persistent Load More section (never removed from the DOM, so its
+            // click listener below always targets a live button, even after a live search
+            // changes the result set from "no more pages" to "more pages" or vice versa).
+            function updateLoadMoreState(hasNext, totalElements, shownCount, size, nextPage) {
+                if (!loadMoreSection) return;
+                if (hasNext) {
+                    const remaining = totalElements - shownCount;
+                    const loadCount = Math.min(remaining, parseInt(size, 10));
+                    loadMoreSection.dataset.nextPage = String(nextPage);
+                    loadMoreSection.dataset.size = String(size);
+                    if (loadMoreLabel) loadMoreLabel.textContent = 'Load ' + loadCount + ' more';
+                    if (loadMoreBtn) loadMoreBtn.disabled = false;
+                    loadMoreSection.style.display = '';
+                } else {
+                    loadMoreSection.style.display = 'none';
+                }
+            }
+
+            // ----- Search-as-you-type -----
+            // Fetches the same card-grid fragment "Load more" uses and replaces the results in
+            // place instead of navigating. Debounced so it doesn't fire on every keystroke, but
+            // unlike a full page submit, a pause mid-typing just updates the results early —
+            // it never discards what's still in the input.
+            const searchInput = document.getElementById('search');
+            if (searchInput) {
+                let debounceTimer;
+                let requestSeq = 0;
+
+                function runLiveSearch() {
+                    const mySeq = ++requestSeq;
+                    const params = new URLSearchParams(new FormData(searchInput.form));
+                    params.set('page', '0');
+                    const size = params.get('size') || '18';
+                    const hasActiveFilters = Array.from(params.keys())
+                        .some(key => key !== 'size' && key !== 'sort' && key !== 'page' && params.get(key));
+
+                    fetch('/organizations/cards?' + params.toString())
+                        .then(function(response) {
+                            if (!response.ok) throw new Error('Request failed: ' + response.status);
+                            return response.text().then(function(html) { return { response: response, html: html }; });
+                        })
+                        .then(function(result) {
+                            if (mySeq !== requestSeq) return; // a newer search already superseded this one
+
+                            // Dispose tooltips on the cards about to be replaced so instances
+                            // don't pile up in memory across repeated live searches.
+                            cardGridRow.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
+                                const inst = bootstrap.Tooltip.getInstance(el);
+                                if (inst) inst.dispose();
+                            });
+
+                            cardGridRow.innerHTML = result.html;
+                            initTooltips(cardGridRow);
+
+                            const hasNext = result.response.headers.get('X-Has-Next') === 'true';
+                            const totalElements = parseInt(result.response.headers.get('X-Total-Elements'), 10);
+                            const shownCount = cardGridRow.children.length;
+
+                            updateResultsCounter(shownCount, totalElements, hasActiveFilters);
+                            updateLoadMoreState(hasNext, totalElements, shownCount, size, 1);
+
+                            if (emptyState) {
+                                emptyState.style.display = totalElements === 0 ? '' : 'none';
+                                if (totalElements === 0) {
+                                    if (emptyStateTitle) {
+                                        emptyStateTitle.textContent = hasActiveFilters
+                                            ? 'No Matching Organizations' : 'No Organizations Found';
+                                    }
+                                    if (emptyStateText) {
+                                        emptyStateText.textContent = hasActiveFilters
+                                            ? 'No organizations match your current search and filters. Try broadening them.'
+                                            : 'No approved organizations are currently available in the portal.';
+                                    }
+                                }
+                            }
+
+                            // Keep the address bar shareable/refreshable without spamming
+                            // browser history on every keystroke (replace, not push).
+                            history.replaceState(null, '', '/organizations?' + params.toString());
+                        })
+                        .catch(function(err) {
+                            // Background convenience update - a transient failure shouldn't
+                            // interrupt typing or the page, so it's logged, not surfaced.
+                            console.error('Live search failed:', err);
+                        });
+                }
+
+                searchInput.addEventListener('input', function() {
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(runLiveSearch, 400);
+                });
+                searchInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        // An explicit Enter is a deliberate "search now", not an accidental
+                        // pause - let the native form submit happen and skip the pending
+                        // debounced live search so the two don't race.
+                        clearTimeout(debounceTimer);
+                    }
+                });
+            }
+
+            // "Load more": progressive loading in place of numbered pagination. Fetches the next
+            // batch as a standalone card-grid fragment and appends it, preserving scroll position
+            // and all currently active filters (read straight from the current URL).
+            if (loadMoreBtn) {
+                loadMoreBtn.addEventListener('click', async function() {
+                    const section = loadMoreSection;
+                    const nextPage = section.dataset.nextPage;
+                    const size = section.dataset.size;
+
+                    const originalLabel = loadMoreLabel.textContent;
+                    loadMoreBtn.disabled = true;
+                    loadMoreLabel.textContent = 'Loading…';
+                    if (loadMoreError) loadMoreError.style.display = 'none';
+
+                    try {
+                        const params = new URLSearchParams(window.location.search);
+                        params.set('page', nextPage);
+                        params.set('size', size);
+
+                        const response = await fetch('/organizations/cards?' + params.toString());
+                        if (!response.ok) throw new Error('Request failed: ' + response.status);
+
+                        const html = await response.text();
+                        cardGridRow.insertAdjacentHTML('beforeend', html);
+                        initTooltips(cardGridRow);
+
+                        const hasNext = response.headers.get('X-Has-Next') === 'true';
+                        const totalElements = parseInt(response.headers.get('X-Total-Elements'), 10);
+                        const shownCount = cardGridRow.children.length;
+
+                        const hasActiveFilters = Array.from(params.keys())
+                            .some(key => key !== 'size' && key !== 'sort' && key !== 'page' && params.get(key));
+                        updateResultsCounter(shownCount, totalElements, hasActiveFilters);
+                        updateLoadMoreState(hasNext, totalElements, shownCount, size, parseInt(nextPage, 10) + 1);
+                    } catch (err) {
+                        loadMoreBtn.disabled = false;
+                        loadMoreLabel.textContent = originalLabel;
+                        if (loadMoreError) {
+                            loadMoreError.textContent = 'Could not load more organizations. Please try again.';
+                            loadMoreError.style.display = 'block';
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+
+    <script>
+        // Wait for DOM to be ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Only attach event listeners if the elements exist (admin-only modal)
+            const spipUserForm = document.getElementById('spipUserForm');
+            const newOrgModal = document.getElementById('newOrgModal');
+
+            if (spipUserForm) {
+                // Handle SPIP user form submission with AJAX
+                spipUserForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+
+                    const username = document.getElementById('spipUsername').value;
+                    const password = document.getElementById('spipPassword').value;
+                    const submitBtn = document.getElementById('spipSubmitBtn');
+                    const errorMsg = document.getElementById('spipErrorMessage');
+                    const errorText = document.getElementById('spipErrorText');
+
+                    // Hide previous errors
+                    errorMsg.classList.add('d-none');
+
+                    // Disable button and show loading
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Verifying...';
+
+                    try {
+                        // Call the validation API endpoint
+                        const url = /*[[@{/organizations/validate-spip}]]*/ '/organizations/validate-spip';
+                        const params = new URLSearchParams({
+                            spipUsername: username,
+                            spipPassword: password
+                        });
+
+                        const response = await fetch(`${url}?${params}`, {
+                            method: 'GET',
+                            headers: {
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            // Success - redirect to the form with pre-populated data
+                            window.location.href = data.redirectUrl;
+                        } else {
+                            // Show error in modal
+                            errorText.innerHTML = `<strong>Authentication Failed:</strong><br>${data.error || 'Unknown error occurred'}`;
+                            errorMsg.classList.remove('d-none');
+
+                            // Re-enable button
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = '<i class="fas fa-arrow-right"></i> Continue with SPIP User';
+                        }
+
+                    } catch (error) {
+                        // Show error in modal
+                        errorText.innerHTML = `<strong>Error:</strong><br>${error.message || 'An unexpected error occurred. Please try again.'}`;
+                        errorMsg.classList.remove('d-none');
+
+                        // Re-enable button
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-arrow-right"></i> Continue with SPIP User';
+                    }
+                });
+            }
+
+            if (newOrgModal) {
+                // Clear error when modal is closed
+                newOrgModal.addEventListener('hidden.bs.modal', function () {
+                    const spipUserForm = document.getElementById('spipUserForm');
+                    const spipErrorMessage = document.getElementById('spipErrorMessage');
+                    if (spipUserForm) spipUserForm.reset();
+                    if (spipErrorMessage) spipErrorMessage.classList.add('d-none');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

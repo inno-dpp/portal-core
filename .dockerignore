@@ -1,0 +1,63 @@
+# Build artifacts
+target/
+build/
+*.jar
+*.war
+
+# Git repository
+.git/
+.gitignore
+
+# IDE files
+.idea/
+*.iml
+*.iws
+.vscode/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Docker files (avoid recursive copying)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Documentation
+README.md
+readme.md
+docs/
+
+# Environment files (secrets)
+.env
+.env.local
+.env.production
+
+# Test files
+src/test/
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+
+# Node modules (if any frontend build tools)
+node_modules/
+
+# Maven wrapper (optional - comment out if you want to include it)
+.mvn/
+mvnw
+mvnw.cmd
+
+# Spring Boot dev tools
+.spring-boot-devtools.properties
+
+# Cache directories
+.cache/
+.gradle/

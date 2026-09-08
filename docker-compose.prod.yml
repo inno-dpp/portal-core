@@ -1,0 +1,96 @@
+# Production: pulled image + PostgreSQL.
+#
+# TLS termination and routing are handled by an external reverse proxy that
+# points at this container on port 8080 (${APP_PORT:-8080} on the host).
+#
+# Prerequisite: cp .env.example .env  (all application settings live there)
+# Run:          docker compose -f docker-compose.prod.yml --env-file .env up -d
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: d4c-portal-postgres-prod
+    environment:
+      POSTGRES_DB: ${DB_NAME:-portal}
+      POSTGRES_USER: ${DB_USERNAME:-portal}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${DB_PORT_EXTERNAL:-5432}:5432"
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+      - ./docker/init-scripts:/docker-entrypoint-initdb.d:ro
+      - ./docker/backups:/backups
+    networks:
+      - d4c-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-portal} -d ${DB_NAME:-portal}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+  app:
+    image: ${APP_IMAGE:-d4c-portal:latest}
+    pull_policy: ${PULL_POLICY:-always}
+    container_name: d4c-portal-app-prod
+    # All application settings (secrets, SPIP, CKAN, mail, branding,
+    # OpenTelemetry, ...) come from .env; the block below only pins what is
+    # inherent to this stack and always wins over .env values.
+    env_file:
+      - .env
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: postgres
+      DB_PORT: 5432
+      JAVA_OPTS: "-Xmx1g -Xms512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Djava.security.egd=file:/dev/./urandom"
+      # OpenTelemetry Java agent bundled in the image; set
+      # JAVA_TOOL_OPTIONS= (empty) in .env to disable it.
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:--javaagent:/app/opentelemetry-javaagent.jar}
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - app_logs:/app/logs
+    networks:
+      - d4c-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
+          cpus: '2.0'
+        reservations:
+          memory: 512M
+          cpus: '1.0'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  postgres_prod_data:
+    driver: local
+  app_logs:
+    driver: local
+
+networks:
+  d4c-network:
+    driver: bridge

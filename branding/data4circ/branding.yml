@@ -1,0 +1,69 @@
+# DATA4CIRC branding — the complete deployment branding in one file.
+# Activated via SPRING_CONFIG_IMPORT (see branding/data4circ/README.md);
+# imported properties override the ${BRANDING_*:...} defaults in
+# application.yml, so no BRANDING_* env vars are needed. Individual env vars
+# still take precedence over this file when set.
+# Structure mirrors ThemeProperties (prefix app.branding).
+
+spring:
+  web:
+    resources:
+      # Serve the logo files in this directory. The path is relative to the
+      # portal's working directory and resolves identically on the host
+      # (run from the repo root) and in Docker (docker-compose.data4circ.yml
+      # mounts this directory at the matching location under /app).
+      # Overriding static locations replaces Spring Boot's defaults, so the
+      # classpath entries must be repeated.
+      static-locations: file:./branding/data4circ/,classpath:/META-INF/resources/,classpath:/resources/,classpath:/static/,classpath:/public/
+
+app:
+  branding:
+    # ── Brand identity ──────────────────────────────────────────────────
+    brand-name: DATA4CIRC Portal
+    brand-tagline: Circular Economy Data Platform
+    brand-subtagline: Integrate data catalog functionality with SPIP capabilities for circular economy data management.
+    # Support contact shown in outgoing emails; hidden while empty
+    support-email: ""
+    # Email sign-off and copyright texts
+    team-name: The DATA4CIRC Team
+    copyright-holder: DATA4CIRC
+
+    # ── Color scheme (#RRGGBB) ──────────────────────────────────────────
+    # The DATA4CIRC green palette (per the project VI manual); pinned here
+    # so changes to the portal's neutral defaults cannot alter this brand.
+    colors:
+      primary: "#00AA78"        # login box, main elements
+      secondary: "#2B463C"      # backgrounds, accents
+      accent: "#8FD9C0"         # buttons, links, highlights
+      info: "#3366CC"           # links, technology elements
+      success: "#2E7D32"
+      warning: "#ED6C02"
+      danger: "#C62828"
+      text: "#1F2933"           # main text
+      light-text: "#6D7485"     # captions, hints
+
+    # ── Typography ──────────────────────────────────────────────────────
+    typography:
+      font-family: "Open Sans, Arial, sans-serif"
+      heading-font-family: "Montserrat, Open Sans, Arial, sans-serif"   # per VI manual
+
+    # ── Assets (served from this directory, see static-locations above) ─
+    assets:
+      logo: /assets/branding/Data4circ_logo_full_colour.png
+      logo-small: /assets/branding/Data4circ_logo_full_reversed.png
+      favicon: /assets/branding/favicon.png
+      login-background: ""
+
+    # ── Navbar ──────────────────────────────────────────────────────────
+    navbar:
+      background: "#2B463C"
+      text-color: "#FFFFFF"
+
+  # ── Dashboard use-case categories ─────────────────────────────────────
+  # Categories (CKAN groups) are now managed by platform admins at
+  # /admin/categories, stored in the portal DB, and synced to CKAN — see
+  # features/category/. This used to be a static app.dashboard.use-case-cards
+  # list here; that's retired. The four categories above (Catalytic
+  # Converters, Electronic Equipment, Agricultural Plastic, Other Categories)
+  # are seeded automatically on first startup (CategorySeedBackfill), so a
+  # fresh deployment still gets them with zero manual steps.
