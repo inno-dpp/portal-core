@@ -1,12 +1,18 @@
 # SPIP Plugin Decoupling — Implementation Plan
 
-**Status:** Milestones 1 and 2 complete. The repo is a Maven multi-module reactor
-(`core` + `spip-plugin`); `mvn -pl core -am package` produces a jar with zero SPIP
-implementation classes, verified by booting it standalone. One open item: whether/how
-to keep shipping a full (core + SPIP) bundled Docker image before Milestone 3's proper
-plugin-jar deployment mechanism exists — see the note at the end of Milestone 2. This
-document exists so a fresh session (human or Claude) picked up in a sandbox clone has
-full context without re-deriving it.
+**Status:** All three milestones complete. This repo (`portal-for-circularity`) is
+**superseded**: the code now lives in
+[inno-dpp/portal-core](https://github.com/inno-dpp/portal-core) (public) and
+[inno-dpp/spip-plugin](https://github.com/inno-dpp/spip-plugin) (private), each its
+own repo with its own single-commit history, verified building and testing
+independently — including spip-plugin resolving core as a real published dependency,
+in CI, in its own separate repo. Two open items carried forward, both noted where they
+arise below: (1) neither new repo yet has a "bundle core + plugin into one runnable
+jar" mechanism — today each repo produces its own artifact, and Milestone 3's actual
+plugin-loading story (`loader.path`/drop-a-jar-in-`/plugins`) was never built, only
+planned; (2) `spip-plugin`'s `NOTICE.md` is a placeholder — no real license text has
+been drafted for it. This document exists so a fresh session (human or Claude) picked
+up in either new repo has full context without re-deriving it.
 
 ## Business goal
 
@@ -337,15 +343,106 @@ owns the deployed environments before it matters in practice.
 
 ### Milestone 3 — Repo split (only after 1–2 are proven)
 
-9. Publish core's capability interfaces as a versioned artifact.
-10. Stand up `spip-plugin` as its own new private repo, seeded from the module carved
-    out in Milestone 2.
-11. Cut `portal-core` as the new public canonical repo — clean history, not a fork.
-    This repo (`portal-for-circularity`) is superseded once that happens.
+✅ **Done.** Both new repos exist, are populated, and are verified working
+independently.
 
-**Effort/risk note:** real technical risk lives in Milestones 1–2 (does conditional
-loading actually behave, does the nav/security refactor hold, does the split produce a
-genuinely clean core jar). Milestone 3 is comparatively mechanical once 1–2 work.
+9. ✅ **Done — with a scope adjustment.** "Publish core's capability interfaces as a
+   versioned artifact" turned out not to mean a narrower carve-out of just the
+   interfaces: `NavContribution`, `SecurityRuleContributor`, `DemoDataContributor` and
+   `CollaborationPartnerHook`'s method signatures all take core domain entities
+   (`Organization`, `OrganizationOnboardingRequest`) as parameters, and those entities
+   are woven through the rest of core's JPA model (`User`, `Connector`,
+   `OrganizationSpipUser`, ...) — pulling them into a separate, narrower "API-only"
+   module would have been a much larger, riskier undertaking than this milestone
+   asked for, and wasn't attempted. Instead: **all of `core`** is published as the
+   versioned artifact (it already only depends on itself — that's what Milestone 1–2
+   proved), and `spip-plugin` depends on that whole published jar, same as it depended
+   on the `core` Maven module before the repo split. This achieves the actual goal
+   (spip-plugin resolves core through a real Maven repository, not a reactor-relative
+   path) without inventing a narrower module boundary nothing asked for.
+   - Publishes to GitHub Packages, `com.data4circ:d4c-portal`, at
+     `https://maven.pkg.github.com/inno-dpp/portal-core` — `core/pom.xml`'s
+     `<distributionManagement>`; CI (`.github/workflows/build-push.yml`, "Publish to
+     GitHub Packages" step, after the version bump) runs `mvn deploy` on every push to
+     `main`. GitHub Packages requires authentication for every operation, including
+     resolving a *public* package — wired via `actions/setup-java`'s
+     `server-id`/`server-username`/`server-password` in CI, or a `<server id="github">`
+     entry in `settings.xml` reading `GITHUB_ACTOR`/`GITHUB_TOKEN` for local builds.
+   - **Bug found and fixed by the very first real consumer of the published artifact:**
+     `spring-boot-maven-plugin`'s `repackage` goal, with no classifier configured,
+     overwrites the *primary* artifact — the plain library jar with classes at the jar
+     root, the one `mvn deploy` publishes and the one a `<dependency>` resolves — with
+     the executable fat jar (classes nested under `BOOT-INF/classes/`). `spip-plugin`'s
+     first CI run against the published `1.0.0` failed compilation entirely
+     ("package com.data4circ.portal.features.organization.entity does not exist") even
+     though dependency *resolution* had succeeded — the jar was there, just structured
+     wrong for library use. Fixed by giving the `repackage` execution a `<classifier>`
+     (`exec`), so the runnable jar becomes a secondary artifact
+     (`d4c-portal-<version>-exec.jar`) instead of replacing the plain one; `Dockerfile`
+     and `release.config.js` updated to point at `*-exec.jar` specifically, since
+     `target/` now holds two jars an unqualified glob would both match. Republished as
+     `1.0.1`; `spip-plugin` pinned to that. This is exactly the kind of thing Milestone
+     1's own "the extension point is the only public thing" principle exists to catch
+     early, but it only surfaces once something *outside the reactor* actually tries to
+     consume the artifact as a normal dependency — which is precisely what this
+     milestone is for.
+10. ✅ **Done.** [`inno-dpp/spip-plugin`](https://github.com/inno-dpp/spip-plugin)
+    (private) stood up, seeded from the `spip-plugin` module's current content at a
+    single fresh commit (not history-filtered from the old repo — consistent with the
+    "clean history" call the plan already made for `portal-core` below, and simpler
+    given how intertwined the pre-split history is). Pinned to `core.version=1.0.1`
+    (a plain property now, not `${project.version}` — the two repos release
+    independently, there's no shared version to lean on anymore). Its own
+    `NOTICE.md` is a **placeholder** — flagged, not resolved: no real license text
+    exists yet for this repo, and none should be inferred from the placeholder.
+11. ✅ **Done.** [`inno-dpp/portal-core`](https://github.com/inno-dpp/portal-core)
+    (public) cut as the new canonical repo — a single fresh commit seeded from the
+    `core` module's current content, standalone `pom.xml` (own
+    `spring-boot-starter-parent` parent again, no more aggregator to inherit from).
+    This repo (`portal-for-circularity`) is now marked superseded (README, CLAUDE.md)
+    pointing at both new repos; **not archived** on GitHub — that's a further,
+    separate, harder-to-reverse step left for an explicit decision, not assumed by
+    "cut the new canonical repo."
+
+**Verified, not just pushed:**
+- Both new repos' CI (`mvn test`) passed independently: `portal-core` — 39 test
+  classes green, standalone, no `spip-plugin` in sight. `spip-plugin` — 12 tests
+  across 3 classes green, in its *own* repo, having resolved `com.data4circ:d4c-portal`
+  from `portal-core`'s GitHub Packages registry as a real external dependency — the
+  literal proof this milestone exists to produce.
+- `portal-core`'s release automation ran for real on push (not a dry run): computed
+  `1.0.0` as the initial version (no prior tags), tagged a GitHub release, published
+  `com.data4circ:d4c-portal` to GitHub Packages, and (via `build-push.yml`) built and
+  pushed a Docker image to GHCR — then did it all again correctly for the `1.0.1` fix.
+
+**Not done, and worth flagging explicitly rather than letting it stand as an implicit
+gap:**
+- **No "bundle everything into one runnable jar" story exists yet.** Before the split,
+  `mvn package` in the monorepo (or, briefly, the Milestone 2 reactor) produced one
+  artifact with everything. Now: `portal-core` produces its own runnable jar (core
+  only, by design); `spip-plugin` produces a library jar meant to sit *alongside*
+  core's classes at runtime, but nothing wires that up automatically. The
+  "distribution decisions" section below describes the intended mechanism
+  (`loader.path`/`PropertiesLauncher`, drop the plugin jar in `/plugins`) — it was
+  never implemented, only planned. Until it is, running "portal + SPIP together" means
+  manually assembling both jars' classes onto one classpath.
+- `spip-plugin`'s own CI (`ci.yml`) only builds and tests — no release automation
+  (semantic versioning, GitHub releases, publishing its own jar) was set up for it,
+  unlike `portal-core`. Its `<distributionManagement>` entry is configured but nothing
+  invokes `mvn deploy` on it yet.
+- Neither new repo's CI was cross-checked against the *other* E2E suites this project
+  has (`CkanIntegrationTest`, `KeycloakIntegrationTest` — excluded from the default
+  `mvn test` run in both repos, same as before the split, but never actually re-run
+  against live CKAN/Keycloak instances as part of this milestone).
+
+**Effort/risk note (original, now historical):** real technical risk was expected to
+live in Milestones 1–2 (does conditional loading actually behave, does the
+nav/security refactor hold, does the split produce a genuinely clean core jar),
+with Milestone 3 comparatively mechanical once 1–2 worked. That held for the repo
+mechanics themselves, but Milestone 3 still surfaced one genuine, previously-latent
+bug (the fat-jar classifier issue above) — proof that "the reactor build works" and
+"an external consumer can actually depend on the artifact" are different claims, and
+only the second one is what Milestone 3 was really testing.
 
 ## Distribution / licensing decisions already made
 
