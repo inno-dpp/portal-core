@@ -39,8 +39,11 @@ ARG OTEL_AGENT_VERSION=2.10.0
 RUN curl -L -o opentelemetry-javaagent.jar \
     https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v${OTEL_AGENT_VERSION}/opentelemetry-javaagent.jar
 
-# Copy the JAR file from builder stage
-COPY --from=builder /app/target/*.jar app.jar
+# Copy the JAR file from builder stage — the runnable/executable one specifically
+# (classifier "exec"; see pom.xml's spring-boot-maven-plugin config): target/ also has
+# a plain library jar with the same version, and an unqualified *.jar glob would match
+# both.
+COPY --from=builder /app/target/*-exec.jar app.jar
 
 # Create logs directory and set ownership
 RUN mkdir -p /app/logs && chown -R appuser:appuser /app

@@ -201,6 +201,19 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <!-- Without a classifier, `repackage` overwrites the plain library
+                         jar (classes at the jar root) with the executable fat jar
+                         (classes nested under BOOT-INF/classes/), which is fine for
+                         `java -jar` but breaks anyone who depends on this artifact as a
+                         library (e.g. spip-plugin) — the classes simply aren't where a
+                         normal classpath entry expects them. This keeps the plain jar as
+                         the primary/default artifact (what `mvn deploy` publishes as
+                         d4c-portal-<version>.jar) and the runnable one as a secondary,
+                         classified artifact instead (d4c-portal-<version>-exec.jar —
+                         see Dockerfile). -->
+                    <classifier>exec</classifier>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.cyclonedx</groupId>

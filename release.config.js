@@ -104,7 +104,11 @@ module.exports = {
       {
         assets: [
           {
-            path: 'target/*.jar',
+            // The runnable jar specifically (classifier "exec" — see pom.xml's
+            // spring-boot-maven-plugin config); target/ also has a plain library jar
+            // published separately to GitHub Packages, which an unqualified glob would
+            // also match.
+            path: 'target/*-exec.jar',
             label: 'Application JAR (v${nextRelease.version})'
           }
         ],
