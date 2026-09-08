@@ -5,6 +5,13 @@ All notable changes to the DATA4CIRC Portal will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.0.0 (2026-09-08)
+
+
+### ✨ Features
+
+* seed portal-core, extracted from portal-for-circularity ([61afd2e](https://github.com/inno-dpp/portal-core/commit/61afd2e88ba967de135976e541012092d18b4f4a))
+
 ## [1.1.0-beta.1](https://github.com/inno-dpp/portal-for-circularity/compare/v1.0.1-beta.2...v1.1.0-beta.1) (2026-08-31)
 
 
