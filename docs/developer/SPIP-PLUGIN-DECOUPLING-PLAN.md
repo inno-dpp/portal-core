@@ -386,6 +386,15 @@ independently.
      early, but it only surfaces once something *outside the reactor* actually tries to
      consume the artifact as a normal dependency — which is precisely what this
      milestone is for.
+   - **Second bug, found the same way:** the very next push to `main` (a docs-only
+     commit, no release-worthy change) failed CI with `409 Conflict` trying to
+     redeploy `d4c-portal:1.0.1` — GitHub Packages Maven versions are immutable, but
+     the "Publish to GitHub Packages" step ran unconditionally on every push,
+     inheriting that from the pre-existing Docker build/push step it sits next to
+     (harmless there — GHCR tags tolerate being overwritten). Fixed by gating the
+     Maven publish step on `needs.semantic-version.outputs.new_release_published ==
+     'true'`, matching how `create-release` was already gated. The Docker push itself
+     was left unconditional (pre-existing behavior, not this milestone's to change).
 10. ✅ **Done.** [`inno-dpp/spip-plugin`](https://github.com/inno-dpp/spip-plugin)
     (private) stood up, seeded from the `spip-plugin` module's current content at a
     single fresh commit (not history-filtered from the old repo — consistent with the
