@@ -105,7 +105,12 @@ jobs:
           echo "Updating pom.xml to version: $VERSION"
           mvn versions:set -DnewVersion="$VERSION" -DgenerateBackupPoms=false -B
 
+      # Gated on an actual new release: GitHub Packages versions are immutable, and
+      # this job (unlike create-release below) otherwise runs on every push to main —
+      # found the hard way, as a 409 Conflict, the first time a non-release commit
+      # (a docs change) landed after 1.0.1 was already published.
       - name: Publish to GitHub Packages
+        if: needs.semantic-version.outputs.new_release_published == 'true'
         run: mvn deploy -DskipTests -B
         env:
           GITHUB_ACTOR: ${{ github.actor }}
