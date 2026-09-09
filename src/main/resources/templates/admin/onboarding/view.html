@@ -261,6 +261,63 @@
                             </div>
                         </div>
 
+                        <!-- Backfill Actions: this organization is already approved, but a tool
+                             (e.g. SPIP, newly enabled after this org was approved) has never been
+                             synchronized for it. Adding it here materializes just that tool's
+                             connector — already-configured tools (CKAN, Keycloak, ...) are untouched. -->
+                        <div th:if="${request.status.name() == 'ORGANIZATION_CREATED' and !#lists.isEmpty(backfillableTools)}">
+                            <div class="alert alert-info" role="alert">
+                                <i class="fas fa-plus-circle"></i>
+                                <strong>New tool(s) available.</strong> This organization was approved
+                                before the tool(s) below existed in this deployment. Adding one here
+                                connects it to this organization now, without affecting anything
+                                already configured.
+                            </div>
+                            <th:block th:each="tool : ${backfillableTools}">
+                                <form th:action="@{/admin/onboarding/{id}/backfill/{key}(id=${request.id},key=${tool.key})}" method="post">
+                                    <div class="mb-3" th:each="field : ${tool.fields}">
+                                        <label th:for="${field.name}" class="form-label">
+                                            <strong th:text="${field.label}">Input</strong>
+                                        </label>
+                                        <input class="form-control"
+                                               th:type="${field.type}"
+                                               th:id="${field.name}"
+                                               th:name="${field.name}"
+                                               th:value="${field.proposedValue}"
+                                               th:required="${field.required}"
+                                               th:readonly="${field.readOnly}"
+                                               th:attr="pattern=${field.htmlPattern},
+                                                        maxlength=${field.maxLength},
+                                                        minlength=${field.minLength}"
+                                               th:placeholder="'Enter ' + ${field.label}"
+                                               th:disabled="${!tool.dependenciesMet}">
+                                        <div class="form-text" th:if="${field.helpText}">
+                                            <small>
+                                                <i class="fas fa-info-circle"></i>
+                                                <span th:text="${field.helpText}">help</span>
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <button type="submit"
+                                            class="btn btn-primary w-100 mb-3"
+                                            th:disabled="${!tool.dependenciesMet}"
+                                            th:attr="data-bs-toggle=${!tool.dependenciesMet ? 'tooltip' : null},
+                                                    data-bs-placement=${!tool.dependenciesMet ? 'top' : null},
+                                                    title=${!tool.dependenciesMet ? 'Please add ' + tool.dependencyNames + ' first' : null}">
+                                        <i class="fas fa-plus"></i> Add <span th:text="${tool.displayName}">Tool</span> to this organization
+                                    </button>
+                                </form>
+                                <div th:if="${!tool.dependenciesMet}" class="form-text text-warning mt-1 mb-3">
+                                    <small>
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <span th:text="${tool.displayName}">Tool</span> requires
+                                        <span th:text="${tool.dependencyNames}">dependency</span> to be added first.
+                                    </small>
+                                </div>
+                            </th:block>
+                            <hr>
+                        </div>
+
                         <!-- Rejected Actions: allow re-opening so the request can be approved later -->
                         <div th:if="${request.status.name() == 'REJECTED'}">
                             <div class="alert alert-danger" role="alert">
