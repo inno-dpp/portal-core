@@ -212,6 +212,12 @@ class SpipModuleDisabledIntegrationTest {
         // get created unconditionally — see OnboardingToolConnectorService
         // #materializeConfigOnlyConnectors.
         assertThat(connectorRepository.findByOrganizationAndToolKey(organization, "spip")).isEmpty();
+
+        // Same phantom-connector class, different tool: "spip-agent" is genuinely
+        // config-only (no provisioner even with the module on), so it's easy to miss
+        // wiring its enabled flag to app.modules.spip.enabled too — regression-tested
+        // separately from "spip" above because that fix didn't cover it.
+        assertThat(connectorRepository.findByOrganizationAndToolKey(organization, "spip-agent")).isEmpty();
     }
 
     private void mockCkanSuccess() {

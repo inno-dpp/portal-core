@@ -239,10 +239,14 @@ app:
               "publicEndpoint": "http://localhost:10291/public"
             }
       # Config-only tool: the local SPIP agent handling encrypt/decrypt requests.
+      # SPIP-specific (unlike edc below, which is module-agnostic) — enabled must
+      # cascade from app.modules.spip.enabled the same way the "spip" tool above
+      # does, or a module-disabled build (portal-core with no spip-plugin) still
+      # materializes a phantom "SPIP Agent" connector for every approved org.
       spip-agent:
-        enabled: ${ONBOARDING_TOOL_SPIP_AGENT_ENABLED:true}
+        enabled: ${ONBOARDING_TOOL_SPIP_AGENT_ENABLED:${app.modules.spip.enabled:true}}
         connector:
-          enabled: ${ONBOARDING_TOOL_SPIP_AGENT_CONNECTOR_ENABLED:true}
+          enabled: ${ONBOARDING_TOOL_SPIP_AGENT_CONNECTOR_ENABLED:${app.modules.spip.enabled:true}}
           name: SPIP Agent
           type: SPIP_AGENT
           description: Local SPIP agent for attribute-based encryption and decryption. Configure after onboarding.
