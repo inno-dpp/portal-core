@@ -157,22 +157,19 @@ public class DataInitializer {
         logger.info("Initializing connectors...");
 
         Organization greenTech = organizationRepository.findByName("GreenTech Solutions").orElse(null);
-        Organization ecoRecycle = organizationRepository.findByName("EcoRecycle Corp").orElse(null);
         Organization agPlastics = organizationRepository.findByName("Agricultural Plastics Institute").orElse(null);
         Organization circularData = organizationRepository.findByName("CircularData Analytics").orElse(null);
 
+        // EcoRecycle's "SPIP Agent" connector used to be hardcoded here too, regardless of
+        // whether the SPIP module was even present — moved to SpipDemoDataContributor
+        // (spip-plugin), alongside its other demo data, so it only appears when SPIP
+        // actually does. See DemoDataContributor and seedModuleDemoData() below.
         Connector[] connectors = {
             createConnector("GreenTech Data Provider",
                 "Main data provider for automotive catalytic converter recycling data",
                 ConnectorType.DATA_PROVIDER, "https://api.greentech-solutions.com/data",
                 ConnectorStatus.ONLINE, greenTech,
                 "{\"apiKey\": \"encrypted_key_123\", \"dataTypes\": [\"catalytic_converters\", \"precious_metals\"]}"),
-
-            createConnector("EcoRecycle SPIP Agent",
-                "SPIP agent for secure data sharing of electronic waste data",
-                ConnectorType.SPIP_AGENT, "https://spip.ecorecycle.com/agent",
-                ConnectorStatus.ONLINE, ecoRecycle,
-                "{\"agentId\": \"eco_agent_456\", \"encryptionLevel\": \"AES-256\"}"),
 
             createConnector("Agricultural Research DB",
                 "Database connector for agricultural plastic research data",

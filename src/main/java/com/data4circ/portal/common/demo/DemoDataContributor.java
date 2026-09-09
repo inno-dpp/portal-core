@@ -9,8 +9,9 @@ import com.data4circ.portal.features.organization.entity.Organization;
  * <p>Same "ask by capability, not by tool" shape as {@link com.data4circ.portal.common.nav.NavContribution}
  * and {@link com.data4circ.portal.common.security.SecurityRuleContributor}: {@code DataInitializer}
  * depends on {@code List<DemoDataContributor>} rather than a specific module's facade, so a
- * module's demo-data hook — like SPIP's mock attributes/policies/key statuses — lives entirely
- * in that module's own package and simply isn't in the list when the module is disabled.</p>
+ * module's demo-data hook — including any sample {@code Connector} rows it wants to seed, not
+ * just its own entities like SPIP's mock attributes/policies/key statuses — lives entirely in
+ * that module's own package and simply isn't in the list when the module is disabled.</p>
  */
 public interface DemoDataContributor {
 
