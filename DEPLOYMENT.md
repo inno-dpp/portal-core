@@ -107,7 +107,8 @@ docker compose -f docker-compose.prod.yml --env-file .env up -d
 ```
 
 - Portal: http://localhost:8080 (override with `APP_PORT`)
-- Image selected via `APP_IMAGE` (e.g. `ghcr.io/inno-dpp/portal-for-circularity:develop`)
+- Image selected via `APP_IMAGE` (e.g. `ghcr.io/inno-dpp/portal-core:latest`, public — no
+  registry login needed to pull it)
 
 TLS and routing are handled outside this stack: point your reverse proxy
 (nginx, Traefik, a cloud load balancer, ...) at the app container on

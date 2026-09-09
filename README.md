@@ -1,9 +1,9 @@
 # Portal for Circularity
 
-[![CI](https://github.com/inno-dpp/portal-for-circularity/actions/workflows/ci.yml/badge.svg)](https://github.com/inno-dpp/portal-for-circularity/actions/workflows/ci.yml)
-[![Build and Push](https://github.com/inno-dpp/portal-for-circularity/actions/workflows/build-push.yml/badge.svg)](https://github.com/inno-dpp/portal-for-circularity/actions/workflows/build-push.yml)
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/inno-dpp/portal-for-circularity)](https://github.com/inno-dpp/portal-for-circularity/releases)
-[![Docker Image](https://img.shields.io/badge/docker-ghcr.io-blue)](https://github.com/inno-dpp/portal-for-circularity/pkgs/container/portal-for-circularity)
+[![CI](https://github.com/inno-dpp/portal-core/actions/workflows/ci.yml/badge.svg)](https://github.com/inno-dpp/portal-core/actions/workflows/ci.yml)
+[![Build and Push](https://github.com/inno-dpp/portal-core/actions/workflows/build-push.yml/badge.svg)](https://github.com/inno-dpp/portal-core/actions/workflows/build-push.yml)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/inno-dpp/portal-core)](https://github.com/inno-dpp/portal-core/releases)
+[![Docker Image](https://img.shields.io/badge/docker-ghcr.io-blue)](https://github.com/inno-dpp/portal-core/pkgs/container/portal-for-circularity)
 [![Java](https://img.shields.io/badge/java-17-orange.svg)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/spring%20boot-3.x-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
@@ -20,6 +20,33 @@ A Spring Boot web application integrating data catalog functionality with SPIP p
 - **Role-Based Access**: Four-tier permission system (Platform Admin, Org Admin, SPIP User, Member)
 - **White-Label Support**: Client-specific branding via configuration (brand name, colors, logos) - no code changes required
 - **Observability**: Integrated with SigNoz for distributed tracing, metrics, and logs (no code changes required)
+
+## Running the Application
+
+**Bare metal (H2, no setup):**
+```bash
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
+```
+Open http://localhost:8085.
+
+**Docker, prebuilt image (public, no login needed):**
+```bash
+docker pull ghcr.io/inno-dpp/portal-core:latest
+docker run -p 8085:8085 -e SPRING_PROFILES_ACTIVE=dev ghcr.io/inno-dpp/portal-core:latest
+```
+Open http://localhost:8085. `SPRING_PROFILES_ACTIVE=dev` gets you the same H2 database
+and demo data as the bare-metal command above — for anything closer to production
+(PostgreSQL, a real admin account, your own config), see the full guide below instead.
+
+**Docker Compose, built from source (PostgreSQL, prod-like):**
+```bash
+cp .env.example .env   # fill in DB_PASSWORD, ENCRYPTION_KEY, ADMIN_USERNAME/PASSWORD
+docker compose -f docker-compose.local.yml up -d --build
+```
+Open http://localhost:8085 (override with `APP_PORT` in `.env`).
+
+Full instructions, all three modes, environment variables, and troubleshooting:
+[DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## White-Label Deployment
 
@@ -160,7 +187,8 @@ git commit -m "feat!: redesign API structure"
 ## Documentation
 
 ### Deployment Guides
-- [White-Label Deployment](docs/developer/WHITE-LABEL-DEPLOYMENT.md) - **Client-specific branding configuration guide**
+- [Deployment & Configuration Guide](DEPLOYMENT.md) - **Running the portal locally (bare metal or Docker) or in production — start here**
+- [White-Label Deployment](docs/developer/WHITE-LABEL-DEPLOYMENT.md) - Client-specific branding configuration guide
 - [Production Deployment](docs/developer/PRODUCTION-DEPLOYMENT.md) - Production setup guide
 
 ### Developer Guides
@@ -194,7 +222,7 @@ Copyright 2024-2026 NTT DATA Romania. See the [NOTICE](NOTICE) file for attribut
 ## Support
 
 For issues, questions, or contributions:
-- Create an [issue](https://github.com/inno-dpp/portal-for-circularity/issues)
+- Create an [issue](https://github.com/inno-dpp/portal-core/issues)
 - Check the [documentation](docs/)
 
 ---
