@@ -655,6 +655,97 @@ public class OnboardingRequestService {
     }
 
     /**
+     * Adds a tool to an <em>already-approved</em> organization that wasn't available (or
+     * wasn't enabled) when the request was originally approved — e.g. SPIP becoming
+     * available after upgrading a portal-core-only deployment to spip-plugin. Distinct
+     * from {@link #synchronizeTool}, which only operates on PENDING requests as one step
+     * of the normal pre-approval flow: this is the retroactive counterpart, run against
+     * the organization that already exists.
+     *
+     * <p>Reuses the same provisioner and the same idempotent
+     * {@link OnboardingToolConnectorService#materializeConnectors}, so already-provisioned
+     * tools (CKAN, Keycloak, config-only tools already materialized) are left untouched —
+     * only the newly-synced tool's connector gets created. The organization's shared
+     * credential record ({@link OrganizationSpipUser}, created once at original approval
+     * from whichever tools were synced then) is folded in separately here, since
+     * {@code materializeConnectors} only handles connectors, not that record.</p>
+     *
+     * @throws IllegalStateException if the request isn't an approved, organization-backed
+     *         request, if the tool was already synchronized at approval time (this isn't
+     *         a re-sync path), or if a dependency isn't synchronized
+     */
+    @Transactional
+    public OrganizationOnboardingRequest backfillTool(Long requestId, String toolKey, Map<String, String> params) {
+        if (requestId == null) {
+            throw new IllegalArgumentException("Request ID cannot be null");
+        }
+
+        OrganizationOnboardingRequest request = findById(requestId)
+                .orElseThrow(() -> new IllegalArgumentException("Onboarding request not found with ID: " + requestId));
+
+        if (request.getStatus() != OnboardingRequestStatus.ORGANIZATION_CREATED || request.getOrganization() == null) {
+            throw new IllegalStateException("Only an approved request with an existing organization can backfill a tool. "
+                    + "Current status: " + request.getStatus().getDisplayName());
+        }
+
+        OnboardingToolProvisioner tool = toolRegistry.getEnabled(toolKey)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown or disabled onboarding tool: " + toolKey));
+
+        if (toolSyncState.isSynced(requestId, toolKey)) {
+            throw new IllegalStateException(tool.getDisplayName()
+                    + " was already synchronized when this organization was approved.");
+        }
+
+        for (String dependencyKey : tool.getDependencies()) {
+            if (!toolSyncState.isSynced(requestId, dependencyKey)) {
+                String dependencyName = toolRegistry.get(dependencyKey)
+                        .map(OnboardingToolProvisioner::getDisplayName)
+                        .orElse(dependencyKey);
+                throw new IllegalStateException("Please add " + dependencyName
+                        + " first before adding " + tool.getDisplayName());
+            }
+        }
+
+        OnboardingToolSyncOutcome outcome = tool.synchronize(request, params);
+
+        toolSyncState.markSynced(request, toolKey, outcome.getDetails());
+        mirrorLegacySyncFlag(request, toolKey);
+        OrganizationOnboardingRequest savedRequest = save(request);
+
+        Organization organization = savedRequest.getOrganization();
+        toolConnectorService.materializeConnectors(organization, savedRequest);
+        foldBackfilledCredentialsIntoOrganization(organization, savedRequest, toolKey);
+
+        logger.info("Onboarding request {} backfilled tool '{}' onto already-approved organization '{}'",
+                requestId, tool.getDisplayName(), organization.getName());
+        return savedRequest;
+    }
+
+    /**
+     * The organization's shared credential record is normally built once, at original
+     * approval time, from whichever tools were synced then (see {@link #approveRequest}).
+     * A tool synced later via {@link #backfillTool} needs to fold its contribution into
+     * that same existing row instead of it being silently dropped. Only SPIP contributes
+     * to this record today; extend here if a future tool does too.
+     */
+    private void foldBackfilledCredentialsIntoOrganization(Organization organization,
+            OrganizationOnboardingRequest request, String toolKey) {
+        if (!SPIP_TOOL_KEY.equals(toolKey)) {
+            return;
+        }
+        OrganizationSpipUser spipUser = spipUserService.findByOrganization(organization)
+                .orElseGet(() -> {
+                    OrganizationSpipUser created = new OrganizationSpipUser();
+                    created.setOrganization(organization);
+                    return created;
+                });
+        spipUser.setSpipUser(request.getSpipUser());
+        spipUser.setSpipPassword(request.getSpipPassword());
+        spipUser.setSpipSynchronized(true);
+        spipUserService.save(spipUser);
+    }
+
+    /**
      * Keeps the deprecated NOT NULL columns spip_synchronized/ckan_synchronized in sync
      * during the deprecation window; they are never read anymore.
      */

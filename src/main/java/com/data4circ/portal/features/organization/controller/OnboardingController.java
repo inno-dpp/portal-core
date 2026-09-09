@@ -146,6 +146,13 @@ public class OnboardingController {
                 .filter(OnboardingToolView::isSkippedAtApproval)
                 .map(OnboardingToolView::getDisplayName)
                 .toList());
+        // Tools enabled in this deployment but never synchronized for this request — only
+        // meaningful once the org already exists: a tool that became available (e.g. SPIP
+        // after installing spip-plugin) after this organization was approved. Rendered as
+        // a "backfill" action distinct from the normal pre-approval synchronize forms.
+        model.addAttribute("backfillableTools", request.getStatus() == OnboardingRequestStatus.ORGANIZATION_CREATED
+                ? toolViews.stream().filter(v -> !v.isConfigOnly() && !v.isSynced()).toList()
+                : List.of());
         model.addAttribute("rejections", onboardingRequestService.getRejectionHistory(id));
         model.addAttribute("title", "Onboarding Request - " + request.getCompanyName());
 
@@ -304,6 +311,41 @@ public class OnboardingController {
             logger.error("Unexpected error during {} synchronization for request {}: {}", toolName, id, e.getMessage(), e);
             redirectAttributes.addFlashAttribute("error",
                 "An unexpected error occurred during " + toolName + " synchronization. Please try again.");
+            return "redirect:/admin/onboarding/" + id;
+        }
+    }
+
+    /**
+     * Retroactively adds a tool to an already-approved organization — see
+     * {@link OnboardingRequestService#backfillTool}. Distinct endpoint from
+     * {@code /synchronize/{toolKey}} rather than relaxing that one's PENDING-only guard,
+     * so the normal pre-approval flow's semantics don't change.
+     */
+    @PostMapping("/admin/onboarding/{id}/backfill/{toolKey}")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    public String backfillTool(@PathVariable Long id,
+                               @PathVariable String toolKey,
+                               @RequestParam Map<String, String> params,
+                               RedirectAttributes redirectAttributes) {
+        String toolName = toolRegistry.get(toolKey)
+                .map(OnboardingToolProvisioner::getDisplayName)
+                .orElse(toolKey);
+        try {
+            onboardingRequestService.backfillTool(id, toolKey, params);
+            redirectAttributes.addFlashAttribute("message",
+                toolName + " added to this organization.");
+            return "redirect:/admin/onboarding/" + id;
+
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return "redirect:/admin/onboarding/" + id;
+        } catch (IllegalStateException e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return "redirect:/admin/onboarding/" + id;
+        } catch (Exception e) {
+            logger.error("Unexpected error backfilling {} for request {}: {}", toolName, id, e.getMessage(), e);
+            redirectAttributes.addFlashAttribute("error",
+                "An unexpected error occurred while adding " + toolName + ". Please try again.");
             return "redirect:/admin/onboarding/" + id;
         }
     }
