@@ -5,6 +5,18 @@ All notable changes to the DATA4CIRC Portal will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3](https://github.com/inno-dpp/portal-core/compare/v1.0.2...v1.0.3) (2026-09-09)
+
+
+### 🐛 Bug Fixes
+
+* dashboard SPIP status badge reflects module presence ([a75b5f0](https://github.com/inno-dpp/portal-core/commit/a75b5f0a5686245d635b745adb8fb6dea8cbee35))
+
+
+### 📚 Documentation
+
+* note the immutable-package 409 and its fix in the plan ([19a2110](https://github.com/inno-dpp/portal-core/commit/19a21102646f7e9dcbbea04ccd3a13dfd430a015))
+
 ## [1.0.2](https://github.com/inno-dpp/portal-core/compare/v1.0.1...v1.0.2) (2026-09-08)
 
 
