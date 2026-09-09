@@ -299,10 +299,15 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="text-muted mb-4">Choose how you want to create the organization:</p>
+                    <p class="text-muted mb-4" th:if="${spipModuleEnabled}">Choose how you want to create the organization:</p>
+                    <p class="text-muted mb-4" th:unless="${spipModuleEnabled}">Enter the organization's details manually:</p>
 
-                    <!-- Option 1: Create from SPIP User -->
-                    <div class="card mb-3">
+                    <!-- Option 1 (the SPIP-onboarding shortcut below): only when the SPIP module
+                         is actually present. Used to render unconditionally; its target,
+                         /organizations/new-from-spip, is mapped by spip-plugin's
+                         SpipOrganizationBootstrapController, so submitting it without the
+                         plugin never resolved. See SPIP-PLUGIN-DECOUPLING-PLAN.md's testing guide. -->
+                    <div class="card mb-3" th:if="${spipModuleEnabled}">
                         <div class="card-body">
                             <h6 class="card-title">
                                 <i class="fas fa-user-shield text-primary"></i> Create from SPIP User

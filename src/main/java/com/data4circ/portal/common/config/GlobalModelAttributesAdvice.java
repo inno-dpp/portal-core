@@ -76,6 +76,19 @@ public class GlobalModelAttributesAdvice {
     }
 
     /**
+     * Whether the SPIP module is present in this deployment at all, independent of the
+     * current user's role — inferred from the same (unfiltered) contributed nav item list
+     * above, rather than a second, SPIP-specific way to answer the same question. Available
+     * in all templates as ${spipModuleEnabled}; used to hide SPIP-only UI (a status badge,
+     * the "Create from SPIP User" shortcut) instead of showing it and letting it silently
+     * fail — see SPIP-PLUGIN-DECOUPLING-PLAN.md's testing guide.
+     */
+    @ModelAttribute("spipModuleEnabled")
+    public boolean addSpipModuleEnabled() {
+        return navContributions.stream().anyMatch(nav -> "/spip".equals(nav.href()));
+    }
+
+    /**
      * Adds the number of pending incoming collaboration requests for the current user's
      * organization. Available in all templates as ${pendingCollabCount}.
      */

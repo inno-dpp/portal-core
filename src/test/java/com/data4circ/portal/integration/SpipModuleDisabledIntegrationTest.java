@@ -30,6 +30,7 @@ import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequ
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.Collections;
@@ -39,6 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
@@ -124,10 +126,44 @@ class SpipModuleDisabledIntegrationTest {
         User admin = saveAdmin("spip-badge-admin");
 
         // Was previously a hardcoded "Online" badge regardless of deployment — see
-        // DashboardController#isSpipModuleEnabled and dashboard.html's System Status card.
+        // GlobalModelAttributesAdvice#addSpipModuleEnabled and dashboard.html's System
+        // Status card.
         mockMvc.perform(get("/")
                         .with(SecurityMockMvcRequestPostProcessors.authentication(auth(admin))))
                 .andExpect(content().string(containsString("Not enabled")));
+    }
+
+    @Test
+    void organizationsListHidesCreateFromSpipUser() throws Exception {
+        User admin = saveAdmin("no-spip-org-list-admin");
+
+        // Was previously rendered unconditionally in the "New Organization" modal even
+        // though its target, /organizations/new-from-spip, is only mapped by spip-plugin's
+        // own controller — submitting it without the plugin never resolved. See
+        // GlobalModelAttributesAdvice#addSpipModuleEnabled and organizations/list.html.
+        // Checked via the form's own id, not the card's visible title text — an
+        // explanatory HTML comment in the template legitimately mentions that title
+        // regardless of which branch renders, so asserting against it would pass even
+        // if the fix regressed and the card rendered unconditionally again.
+        mockMvc.perform(get("/organizations")
+                        .with(SecurityMockMvcRequestPostProcessors.authentication(auth(admin))))
+                .andExpect(content().string(not(containsString("id=\"spipUserForm\""))));
+    }
+
+    @Test
+    void newFromSpipUrlDoesNotResolve() throws Exception {
+        User admin = saveAdmin("no-spip-new-from-spip-admin");
+
+        // Not a clean 404 like /spip: /organizations/new-from-spip is shadowed by core's
+        // own @GetMapping("/{id}") on OrganizationController, so the dispatcher does find
+        // a handler and fails trying to bind "new-from-spip" as the Long id instead — a
+        // real user is spared this because the link to get here no longer renders (see
+        // organizationsListHidesCreateFromSpipUser above); this only pins down that the
+        // endpoint still doesn't work if reached directly.
+        mockMvc.perform(get("/organizations/new-from-spip")
+                        .with(SecurityMockMvcRequestPostProcessors.authentication(auth(admin))))
+                .andExpect(result -> assertThat(result.getResolvedException())
+                        .isInstanceOf(MethodArgumentTypeMismatchException.class));
     }
 
     @Test
