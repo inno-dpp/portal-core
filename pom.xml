@@ -12,7 +12,7 @@
 
     <groupId>com.data4circ</groupId>
     <artifactId>d4c-portal</artifactId>
-    <version>1.0.5</version>
+    <version>1.0.6</version>
     <packaging>jar</packaging>
     <name>Portal for Circularity</name>
     <description>Data catalog and circular economy data management portal — the open-source
