@@ -5,6 +5,13 @@ All notable changes to the DATA4CIRC Portal will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0](https://github.com/inno-dpp/portal-core/compare/v1.0.6...v1.1.0) (2026-09-09)
+
+
+### ✨ Features
+
+* **onboarding:** retroactively add a tool to an already-approved org ([1dc35d9](https://github.com/inno-dpp/portal-core/commit/1dc35d9dc52755d3c206e4df20f0a7afaa889f0b))
+
 ## [1.0.6](https://github.com/inno-dpp/portal-core/compare/v1.0.5...v1.0.6) (2026-09-09)
 
 
