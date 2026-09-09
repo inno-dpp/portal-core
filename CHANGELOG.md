@@ -5,6 +5,19 @@ All notable changes to the DATA4CIRC Portal will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.5](https://github.com/inno-dpp/portal-core/compare/v1.0.4...v1.0.5) (2026-09-09)
+
+
+### 🐛 Bug Fixes
+
+* **onboarding:** gate SPIP Agent connector by the SPIP module switch ([950d600](https://github.com/inno-dpp/portal-core/commit/950d6000e8bc08bb7dc5726a6a6f65fadec9f515))
+* **onboarding:** make spip-agent follow the spip tool's own override ([753ca1c](https://github.com/inno-dpp/portal-core/commit/753ca1cfbf88c87b40e268332f4d66596f8cd5a9))
+
+
+### 📚 Documentation
+
+* point Docker instructions at portal-core, not the old monorepo ([6deea98](https://github.com/inno-dpp/portal-core/commit/6deea9861173f5ab4939a0103b9a960591b8f7ab))
+
 ## [1.0.4](https://github.com/inno-dpp/portal-core/compare/v1.0.3...v1.0.4) (2026-09-09)
 
 
