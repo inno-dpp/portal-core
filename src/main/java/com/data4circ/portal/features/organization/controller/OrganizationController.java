@@ -3,6 +3,7 @@ package com.data4circ.portal.features.organization.controller;
 import jakarta.servlet.http.HttpServletResponse;
 
 import com.data4circ.portal.common.exception.AccessDeniedException;
+import com.data4circ.portal.common.nav.SpipModuleStatus;
 import com.data4circ.portal.features.organization.dto.MemberDTO;
 import com.data4circ.portal.features.organization.dto.ProfileCompletion;
 import com.data4circ.portal.features.organization.dto.SetupChecklistItem;
@@ -93,6 +94,9 @@ public class OrganizationController {
 
     @Autowired
     private OnboardingToolConnectorService toolConnectorService;
+
+    @Autowired
+    private SpipModuleStatus spipModuleStatus;
 
     @Autowired
     private DatasetStatisticsService datasetStatisticsService;
@@ -383,6 +387,16 @@ public class OrganizationController {
      * knowledge of the platform's architecture. Connector types with no entry here (generic data
      * provider/consumer, database, file system, etc.) fall into {@link #OTHER_CONNECTORS_GROUP}. */
     private static final Map<ConnectorType, EcosystemToolMeta> ECOSYSTEM_TOOLS = new LinkedHashMap<>();
+
+    /** Named ecosystem tools that only exist when the SPIP module is part of this
+     * deployment. A connector of one of these types is never created for an org
+     * without the module (see OnboardingToolConnectorService), but the "not
+     * configured" placeholder loop below iterates all of ECOSYSTEM_TOOLS regardless
+     * — this set lets it skip these three instead of showing a permanent, misleading
+     * "not configured yet" tile for a capability that isn't installed at all. */
+    private static final Set<ConnectorType> SPIP_ECOSYSTEM_TOOL_TYPES = EnumSet.of(
+            ConnectorType.SPIP_PLATFORM, ConnectorType.SPIP_AGENT, ConnectorType.DOCUMENTS_MANAGER);
+
     static {
         ECOSYSTEM_TOOLS.put(ConnectorType.FEDERATED_CATALOG_CKAN, new EcosystemToolMeta(
                 "Publish & Manage Datasets",
@@ -451,8 +465,12 @@ public class OrganizationController {
         }
 
         if (isMyOrganization) {
+            boolean spipEnabled = spipModuleStatus.isEnabled();
             for (Map.Entry<ConnectorType, EcosystemToolMeta> entry : ECOSYSTEM_TOOLS.entrySet()) {
                 if (presentTypes.contains(entry.getKey())) {
+                    continue;
+                }
+                if (!spipEnabled && SPIP_ECOSYSTEM_TOOL_TYPES.contains(entry.getKey())) {
                     continue;
                 }
                 EcosystemToolMeta meta = entry.getValue();

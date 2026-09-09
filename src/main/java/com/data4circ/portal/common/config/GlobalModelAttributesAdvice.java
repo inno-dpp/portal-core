@@ -1,6 +1,7 @@
 package com.data4circ.portal.common.config;
 
 import com.data4circ.portal.common.nav.NavContribution;
+import com.data4circ.portal.common.nav.SpipModuleStatus;
 import com.data4circ.portal.features.collaboration.entity.CollaborationStatus;
 import com.data4circ.portal.features.collaboration.repository.CollaborationRequestRepository;
 import com.data4circ.portal.features.organization.entity.User;
@@ -36,6 +37,9 @@ public class GlobalModelAttributesAdvice {
     // list must be able to be genuinely empty.
     @Autowired(required = false)
     private List<NavContribution> navContributions = List.of();
+
+    @Autowired
+    private SpipModuleStatus spipModuleStatus;
 
     /**
      * Adds the application version to all model attributes.
@@ -77,15 +81,16 @@ public class GlobalModelAttributesAdvice {
 
     /**
      * Whether the SPIP module is present in this deployment at all, independent of the
-     * current user's role — inferred from the same (unfiltered) contributed nav item list
-     * above, rather than a second, SPIP-specific way to answer the same question. Available
-     * in all templates as ${spipModuleEnabled}; used to hide SPIP-only UI (a status badge,
-     * the "Create from SPIP User" shortcut) instead of showing it and letting it silently
-     * fail — see SPIP-PLUGIN-DECOUPLING-PLAN.md's testing guide.
+     * current user's role. Available in all templates as ${spipModuleEnabled}; used to
+     * hide SPIP-only UI (a status badge, the "Create from SPIP User" shortcut) instead of
+     * showing it and letting it silently fail — see SPIP-PLUGIN-DECOUPLING-PLAN.md's
+     * testing guide. Delegates to {@link SpipModuleStatus} so non-template code (e.g.
+     * {@code OrganizationController}) answers the same question the same way instead of
+     * a second, SPIP-specific check of its own.
      */
     @ModelAttribute("spipModuleEnabled")
     public boolean addSpipModuleEnabled() {
-        return navContributions.stream().anyMatch(nav -> "/spip".equals(nav.href()));
+        return spipModuleStatus.isEnabled();
     }
 
     /**

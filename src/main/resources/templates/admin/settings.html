@@ -145,7 +145,12 @@
                 <div class="card mb-4">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0"><i class="fas fa-shield-alt"></i> SPIP Platform</h5>
-                        <form th:action="@{/admin/settings/spip/test}" method="post" class="mb-0">
+                        <!-- No /admin/settings/spip/test handler exists in this build without the SPIP
+                             module (the live client only exists in spip-plugin) — posting here would
+                             404 through to a "500 Server Error" page instead of a graceful result, so
+                             hide the action rather than offer a link nothing serves. Same idiom as the
+                             dashboard's SPIP badge and the "Create from SPIP User" shortcut. -->
+                        <form th:if="${spipModuleEnabled}" th:action="@{/admin/settings/spip/test}" method="post" class="mb-0">
                             <button type="submit" class="btn btn-outline-secondary btn-sm">
                                 <i class="fas fa-plug"></i> Test Connection
                             </button>
@@ -159,6 +164,11 @@
                             <code>SPIP_CUSTOMER_TAG</code>, <code>SPIP_ADMIN_USERNAME</code>,
                             <code>SPIP_ADMIN_PASSWORD</code> and <code>SPIP_DEFAULT_ROLE</code>
                             without a restart.
+                        </p>
+                        <p class="text-muted small" th:unless="${spipModuleEnabled}">
+                            <i class="fas fa-info-circle"></i> The SPIP module isn't installed in this
+                            deployment, so these values can be pre-configured but not tested yet —
+                            install the SPIP plugin to enable a live connection test.
                         </p>
 
                         <form th:action="@{/admin/settings/spip}" method="post">
