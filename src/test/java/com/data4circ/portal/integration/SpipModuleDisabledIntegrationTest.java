@@ -176,7 +176,7 @@ class SpipModuleDisabledIntegrationTest {
     }
 
     @Test
-    void ckanAndKeycloakOnboardAndApproveIndependentlyOfSpip() {
+    void ckanAndKeycloakOnboardAndApproveIndependentlyOfSpip() throws Exception {
         mockCkanSuccess();
         mockKeycloakSuccess();
 
@@ -218,6 +218,44 @@ class SpipModuleDisabledIntegrationTest {
         // wiring its enabled flag to app.modules.spip.enabled too — regression-tested
         // separately from "spip" above because that fix didn't cover it.
         assertThat(connectorRepository.findByOrganizationAndToolKey(organization, "spip-agent")).isEmpty();
+
+        // Organization profile page: the same absence should hold for the org's own
+        // "SPIP Password" credential row (organizations/view.html) and the "Secure
+        // Document & Data Sharing" ecosystem-tool placeholder group
+        // (OrganizationController#buildDataToolGroups) — both previously rendered
+        // unconditionally, showing a permanent "not yet available"/"not configured"
+        // tile for a capability that was never going to exist in this deployment.
+        User orgAdmin = new User();
+        orgAdmin.setUsername("no-spip-org-admin");
+        orgAdmin.setEmail("no-spip-org-admin@example.com");
+        orgAdmin.setFirstName("No");
+        orgAdmin.setLastName("Spip");
+        orgAdmin.setPassword("$2a$10$test");
+        orgAdmin.setRole(UserRole.ORG_ADMIN);
+        orgAdmin.setEnabled(true);
+        orgAdmin.setOrganization(organization);
+        orgAdmin = userRepository.save(orgAdmin);
+
+        mockMvc.perform(get("/organizations/" + organization.getId())
+                        .with(SecurityMockMvcRequestPostProcessors.authentication(
+                                new UsernamePasswordAuthenticationToken(orgAdmin, null,
+                                        Collections.singletonList(new SimpleGrantedAuthority("ROLE_ORG_ADMIN"))))))
+                .andExpect(content().string(not(containsString("SPIP Password"))))
+                .andExpect(content().string(not(containsString("Secure Document &amp; Data Sharing"))));
+    }
+
+    @Test
+    void adminSettingsHidesSpipTestConnectionButton() throws Exception {
+        User admin = saveAdmin("no-spip-settings-admin");
+
+        // No /admin/settings/spip/test handler exists without the SPIP module (the live
+        // client only exists in spip-plugin) — the button used to post there regardless,
+        // which 404'd through to a generic "500 Server Error" page instead of the
+        // documented graceful result. Hidden entirely now, same idiom as the dashboard
+        // badge and "Create from SPIP User" shortcut.
+        mockMvc.perform(get("/admin/settings")
+                        .with(SecurityMockMvcRequestPostProcessors.authentication(auth(admin))))
+                .andExpect(content().string(not(containsString("action=\"/admin/settings/spip/test\""))));
     }
 
     private void mockCkanSuccess() {

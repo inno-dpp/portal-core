@@ -449,7 +449,11 @@
                                 </div>
                             </div>
 
-                            <div class="row mb-3">
+                            <!-- Only shown when SPIP is actually part of this deployment: without it,
+                                 spipPassword can never become non-null, so this would otherwise show
+                                 "Not yet available — contact support if this persists" forever, wrongly
+                                 implying a stuck sync rather than a capability that isn't installed. -->
+                            <div class="row mb-3" th:if="${spipModuleEnabled}">
                                 <div class="col-sm-3"><strong>SPIP Password:</strong></div>
                                 <div class="col-sm-9"
                                      th:if="${organization.spipUser != null and organization.spipUser.spipPassword != null}">
