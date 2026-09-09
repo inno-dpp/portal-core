@@ -5,6 +5,14 @@ All notable changes to the DATA4CIRC Portal will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4](https://github.com/inno-dpp/portal-core/compare/v1.0.3...v1.0.4) (2026-09-09)
+
+
+### 🐛 Bug Fixes
+
+* hide the "Create from SPIP User" shortcut when SPIP isn't present ([bd72b08](https://github.com/inno-dpp/portal-core/commit/bd72b08fc1957d8e1fffbc8a5a68f4ab13bd6c93))
+* seed EcoRecycle's demo SPIP connector from spip-plugin, not core ([b554ff4](https://github.com/inno-dpp/portal-core/commit/b554ff4429db6f3d93277358648775a2c6fe1fb6))
+
 ## [1.0.3](https://github.com/inno-dpp/portal-core/compare/v1.0.2...v1.0.3) (2026-09-09)
 
 
