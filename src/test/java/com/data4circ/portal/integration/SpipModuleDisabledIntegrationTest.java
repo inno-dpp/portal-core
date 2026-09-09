@@ -38,10 +38,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 /**
  * Milestone 1, step 6 verification (SPIP-PLUGIN-DECOUPLING-PLAN.md): boots the whole
@@ -115,6 +117,17 @@ class SpipModuleDisabledIntegrationTest {
                         .with(SecurityMockMvcRequestPostProcessors.authentication(auth(admin))))
                 .andExpect(result -> assertThat(result.getResolvedException())
                         .isInstanceOf(NoResourceFoundException.class));
+    }
+
+    @Test
+    void dashboardShowsSpipAsNotEnabledInsteadOfClaimingItsOnline() throws Exception {
+        User admin = saveAdmin("spip-badge-admin");
+
+        // Was previously a hardcoded "Online" badge regardless of deployment — see
+        // DashboardController#isSpipModuleEnabled and dashboard.html's System Status card.
+        mockMvc.perform(get("/")
+                        .with(SecurityMockMvcRequestPostProcessors.authentication(auth(admin))))
+                .andExpect(content().string(containsString("Not enabled")));
     }
 
     @Test

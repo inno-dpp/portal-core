@@ -1,5 +1,6 @@
 package com.data4circ.portal.features.organization.controller;
 
+import com.data4circ.portal.common.nav.NavContribution;
 import com.data4circ.portal.features.category.dto.CategoryCardView;
 import com.data4circ.portal.features.category.entity.Category;
 import com.data4circ.portal.features.category.service.CategoryService;
@@ -33,6 +34,14 @@ public class DashboardController {
     @Autowired
     private CkanSettingsService ckanSettingsService;
 
+    // Whether the SPIP module is present in this deployment. required = false: a plain
+    // List<T> autowiring still demands at least one matching bean, which fails outright
+    // when spip-plugin isn't on the classpath at all — see the identical note on
+    // GlobalModelAttributesAdvice.navContributions, whose list this reuses instead of
+    // introducing a second, SPIP-specific way to answer the same question.
+    @Autowired(required = false)
+    private List<NavContribution> navContributions = List.of();
+
     @GetMapping("/")
     public String dashboard(Model model) {
         // Quick statistics
@@ -51,8 +60,22 @@ public class DashboardController {
         // section is hidden when empty.
         model.addAttribute("categories", buildCategoryCards());
 
+        // System Status widget: SPIP only shows "Online" when the module is actually
+        // present, instead of a hardcoded claim that was true regardless of deployment.
+        model.addAttribute("spipModuleEnabled", isSpipModuleEnabled());
+
         model.addAttribute("title", "Dashboard");
         return "dashboard";
+    }
+
+    /**
+     * Whether the SPIP module is present in this deployment, inferred from the same
+     * generically-contributed nav item list the top navbar renders (see NavContribution) —
+     * avoids a hard compile-time dependency on spip-plugin's own classes just to answer
+     * "is SPIP here at all".
+     */
+    private boolean isSpipModuleEnabled() {
+        return navContributions.stream().anyMatch(nav -> "/spip".equals(nav.href()));
     }
 
     /** Active categories paired with their resolved CKAN "Explore Data" link. */

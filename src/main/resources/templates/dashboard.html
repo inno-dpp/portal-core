@@ -151,7 +151,8 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-between mb-2">
                             <span>SPIP Platform:</span>
-                            <span class="badge bg-success">Online</span>
+                            <span th:if="${spipModuleEnabled}" class="badge bg-success">Online</span>
+                            <span th:unless="${spipModuleEnabled}" class="badge bg-secondary">Not enabled</span>
                         </div>
                         <div class="d-flex justify-content-between">
                             <span>CKAN Metadata Platform:</span>
